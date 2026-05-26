@@ -7,10 +7,13 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
+import { seedDefaultCategoriesIfMissing } from "@/lib/categories/seed";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) redirect("/sign-in");
+
+  await seedDefaultCategoriesIfMissing(session.user.id);
 
   return (
     <SidebarProvider>
