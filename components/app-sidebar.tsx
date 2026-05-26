@@ -7,6 +7,7 @@ import {
 } from "@/components/ui/sidebar";
 import { signOut } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
+import { UploadStatementDialog } from "@/components/upload-statement-dialog";
 
 const nav = [
   { href: "/dashboard", label: "Dashboard" },
@@ -16,10 +17,23 @@ const nav = [
   { href: "/settings", label: "Settings" },
 ];
 
-export function AppSidebar({ user }: { user: { name: string; email: string } }) {
+type Props = {
+  user: { name: string; email: string };
+  accounts: { id: string; name: string; institution: string | null }[];
+  preferredModel: string;
+};
+
+export function AppSidebar({ user, accounts, preferredModel }: Props) {
   return (
     <Sidebar>
-      <SidebarHeader className="px-4 py-3 font-semibold">Finance Tracker</SidebarHeader>
+      <SidebarHeader className="px-4 py-3 space-y-3">
+        <div className="font-semibold">Finance Tracker</div>
+        <UploadStatementDialog
+          accounts={accounts}
+          preferredModel={preferredModel}
+          trigger={<Button size="sm" className="w-full">Upload statement</Button>}
+        />
+      </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupContent>
