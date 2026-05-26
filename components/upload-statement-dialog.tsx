@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
@@ -27,7 +28,6 @@ export function UploadStatementDialog({
   const [open, setOpen] = useState(false);
   const [pending, start] = useTransition();
   const [accountId, setAccountId] = useState(accounts[0]?.id ?? "");
-  const [error, setError] = useState<string | null>(null);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -37,12 +37,11 @@ export function UploadStatementDialog({
         <form
           action={(fd) =>
             start(async () => {
-              setError(null);
               fd.set("financialAccountId", accountId);
               try {
                 await extractStatement(fd);
               } catch (e) {
-                setError((e as Error).message);
+                toast.error("Upload failed", { description: (e as Error).message });
               }
             })
           }
@@ -76,8 +75,6 @@ export function UploadStatementDialog({
               Will extract with <code>{preferredModel}</code> (change in Settings).
             </p>
           </div>
-
-          {error && <p className="text-sm text-destructive">{error}</p>}
 
           <DialogFooter>
             <Button type="submit" disabled={pending || !accountId}>

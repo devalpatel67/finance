@@ -1,6 +1,7 @@
 "use client";
 
 import { useTransition } from "react";
+import { toast } from "sonner";
 
 import {
   DropdownMenu,
@@ -33,7 +34,16 @@ export function ReprocessControls({
           <DropdownMenuItem
             key={m.id}
             disabled={m.id === currentModel}
-            onClick={() => start(() => reprocessStatement(statementId, m.id))}
+            onClick={() =>
+              start(async () => {
+                try {
+                  await reprocessStatement(statementId, m.id);
+                  toast.success("Reprocessed");
+                } catch (e) {
+                  toast.error("Reprocess failed", { description: (e as Error).message });
+                }
+              })
+            }
           >
             {m.label}
             <span className="ml-2 text-xs text-muted-foreground">{m.id}</span>
