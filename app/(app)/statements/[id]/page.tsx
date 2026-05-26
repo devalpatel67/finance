@@ -12,6 +12,7 @@ import {
 } from "@/lib/db/schema";
 import { presignedStatementUrl } from "@/lib/storage/minio";
 import { Badge } from "@/components/ui/badge";
+import { TransactionsTable } from "@/components/transactions-table";
 
 import { ReprocessControls } from "./reprocess-controls";
 
@@ -53,12 +54,6 @@ export default async function StatementDetail({
   const pdfUrl = s.storageKey
     ? await presignedStatementUrl({ bucket: s.storageBucket, key: s.storageKey })
     : null;
-
-  // Placeholder rendering — Task 19 replaces this block with TransactionsTable.
-  const fmt = (amount: string, currency: string) =>
-    new Intl.NumberFormat(undefined, { style: "currency", currency }).format(Number(amount));
-  const catName = (cid: string | null) =>
-    cats.find((c) => c.id === cid)?.name ?? "Uncategorized";
 
   return (
     <div className="space-y-6">
@@ -102,36 +97,7 @@ export default async function StatementDetail({
         </p>
       )}
 
-      {rows.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No transactions.</p>
-      ) : (
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b text-left">
-              <th className="py-2 w-[110px]">Date</th>
-              <th>Description</th>
-              <th className="w-[180px]">Category</th>
-              <th className="w-[120px] text-right">Amount</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r) => (
-              <tr key={r.id} className="border-b">
-                <td className="py-2">{r.postedAt}</td>
-                <td>{r.description}</td>
-                <td>{catName(r.categoryId)}</td>
-                <td
-                  className={`text-right tabular-nums ${
-                    Number(r.amount) < 0 ? "" : "text-emerald-600"
-                  }`}
-                >
-                  {fmt(r.amount, r.currency)}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
+      <TransactionsTable rows={rows} categories={cats} />
     </div>
   );
 }
