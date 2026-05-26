@@ -10,7 +10,9 @@ const schema = z.object({
 
   OPENROUTER_API_KEY: z.string().min(1),
 
-  MINIO_ENDPOINT: z.string().url(),
+  MINIO_ENDPOINT: z.string().min(1),
+  MINIO_PORT: z.string().regex(/^\d+$/).optional(),
+  MINIO_USE_SSL: z.enum(["true", "false"]).optional(),
   MINIO_ACCESS_KEY: z.string().min(1),
   MINIO_SECRET_KEY: z.string().min(1),
   MINIO_BUCKET: z.string().min(1),
