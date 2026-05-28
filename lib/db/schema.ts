@@ -103,6 +103,7 @@ export const transactions = pgTable(
     postedAt: date("posted_at").notNull(),
     description: text("description").notNull(),
     amount: numeric("amount", { precision: 14, scale: 2 }).notNull(),
+    direction: text("direction", { enum: ["outflow", "inflow", "transfer"] }).notNull().default("outflow"),
     currency: text("currency").notNull(),
     categoryId: uuid("category_id").references(() => categories.id, { onDelete: "set null" }),
     rawExtraction: jsonb("raw_extraction"),
