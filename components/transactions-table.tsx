@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/table";
 
 import { CategoryPicker } from "./category-picker";
+import { DirectionPicker } from "./direction-picker";
 
 type Row = {
   id: string;
@@ -18,6 +19,7 @@ type Row = {
   amount: string;
   currency: string;
   categoryId: string | null;
+  direction: "outflow" | "inflow" | "transfer";
 };
 
 type Category = { id: string; name: string; color: string };
@@ -26,7 +28,7 @@ const fmt = (amount: string, currency: string) =>
   new Intl.NumberFormat(undefined, {
     style: "currency",
     currency,
-  }).format(Number(amount));
+  }).format(Math.abs(Number(amount)));
 
 export function TransactionsTable({
   rows,
@@ -45,6 +47,7 @@ export function TransactionsTable({
           <TableHead className="w-[110px]">Date</TableHead>
           <TableHead>Description</TableHead>
           <TableHead className="w-[180px]">Category</TableHead>
+          <TableHead className="w-[140px]">Direction</TableHead>
           <TableHead className="w-[120px] text-right">Amount</TableHead>
         </TableRow>
       </TableHeader>
@@ -60,11 +63,13 @@ export function TransactionsTable({
                 categories={categories}
               />
             </TableCell>
-            <TableCell
-              className={`text-right tabular-nums ${
-                Number(r.amount) < 0 ? "text-foreground" : "text-emerald-600"
-              }`}
-            >
+            <TableCell>
+              <DirectionPicker
+                transactionId={r.id}
+                direction={r.direction}
+              />
+            </TableCell>
+            <TableCell className="text-right tabular-nums text-foreground">
               {fmt(r.amount, r.currency)}
             </TableCell>
           </TableRow>
