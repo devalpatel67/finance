@@ -1,5 +1,5 @@
 import { headers } from "next/headers";
-import { and, desc, eq, gte, lt, sql } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db/client";
 import { transactions, categories } from "@/lib/db/schema";
@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 import { SpendDonut } from "@/components/spend-donut";
 import { EmptyState } from "@/components/empty-state";
 import { TransactionsTable } from "@/components/transactions-table";
+import { getSpendByCategory } from "@/lib/queries/dashboard";
 
 export default async function DashboardPage() {
   const session = (await auth.api.getSession({ headers: await headers() }))!;
@@ -16,20 +17,7 @@ export default async function DashboardPage() {
   start.setDate(start.getDate() - 30);
   const startIso = start.toISOString().slice(0, 10);
 
-  const spendRows = await db
-    .select({
-      categoryId: transactions.categoryId,
-      total: sql<string>`sum(${transactions.amount})`,
-    })
-    .from(transactions)
-    .where(
-      and(
-        eq(transactions.userId, userId),
-        gte(transactions.postedAt, startIso),
-        lt(transactions.amount, "0"),
-      ),
-    )
-    .groupBy(transactions.categoryId);
+  const spendRows = await getSpendByCategory(userId, startIso);
 
   const cats = await db.select().from(categories).where(eq(categories.userId, userId));
   const catById = new Map(cats.map((c) => [c.id, c]));
