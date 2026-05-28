@@ -34,3 +34,29 @@ export async function updateTransactionCategory(input: {
 
   revalidatePath("/transactions");
 }
+
+const DirectionInput = z.object({
+  transactionId: z.string().uuid(),
+  direction: z.enum(["outflow", "inflow", "transfer"]),
+});
+
+export async function updateTransactionDirection(input: {
+  transactionId: string;
+  direction: "outflow" | "inflow" | "transfer";
+}): Promise<void> {
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session) throw new Error("Not signed in");
+
+  const parsed = DirectionInput.parse(input);
+  await db
+    .update(transactions)
+    .set({ direction: parsed.direction })
+    .where(
+      and(
+        eq(transactions.id, parsed.transactionId),
+        eq(transactions.userId, session.user.id),
+      ),
+    );
+
+  revalidatePath("/transactions");
+}
