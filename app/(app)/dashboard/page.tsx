@@ -7,18 +7,24 @@ import { Card } from "@/components/ui/card";
 import { SpendDonut } from "@/components/spend-donut";
 import { EmptyState } from "@/components/empty-state";
 import { TransactionsTable } from "@/components/transactions-table";
+import { TimeRangePicker } from "@/components/time-range-picker";
 import { getSpendByCategory } from "@/lib/queries/dashboard";
 import { stitchAccountsIntoRows } from "@/lib/transactions/stitch-accounts";
+import { formatRangeLabel, parseRange } from "@/lib/dates/ranges";
 
-export default async function DashboardPage() {
+type Search = { range?: string; from?: string; to?: string };
+
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<Search>;
+}) {
+  const sp = await searchParams;
   const session = (await auth.api.getSession({ headers: await headers() }))!;
   const userId = session.user.id;
 
-  const start = new Date();
-  start.setDate(start.getDate() - 30);
-  const startIso = start.toISOString().slice(0, 10);
-
-  const spendRows = await getSpendByCategory(userId, startIso);
+  const range = parseRange(sp);
+  const spendRows = await getSpendByCategory(userId, range.fromIso, range.toIso);
 
   const cats = await db.select().from(categories).where(eq(categories.userId, userId));
   const catById = new Map(cats.map((c) => [c.id, c]));
@@ -58,8 +64,17 @@ export default async function DashboardPage() {
       ) : (
         <>
           <Card className="p-4">
-            <h2 className="mb-2 text-lg font-medium">Last 30 days · spend by category</h2>
-            <SpendDonut data={donut} />
+            <div className="mb-2 flex items-start justify-between gap-4">
+              <h2 className="text-lg font-medium">
+                Spend by category — {formatRangeLabel(range)}
+              </h2>
+              <TimeRangePicker />
+            </div>
+            {donut.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No spend in this range.</p>
+            ) : (
+              <SpendDonut data={donut} />
+            )}
           </Card>
 
           <Card className="p-4">

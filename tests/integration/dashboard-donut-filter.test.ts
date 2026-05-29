@@ -69,13 +69,61 @@ describe("getSpendByCategory", () => {
         currency: "USD",
         direction: "transfer",
       },
+      {
+        userId: "u-donut",
+        financialAccountId: acc.id,
+        postedAt: "1990-01-01",
+        description: "Ancient outflow",
+        amount: "-9999.00",
+        currency: "USD",
+        direction: "outflow",
+      },
     ]);
 
     // Use a fromIso well before the inserted rows so all three are in range.
-    const rows = await getSpendByCategory("u-donut", "2026-05-01");
+    const rows = await getSpendByCategory("u-donut", "2026-05-01", null);
 
     expect(rows).toHaveLength(1);
-    // Raw SUM: -50.00 from the single outflow. Refund and CC Payment excluded.
+    // Raw SUM: -50.00 from the single in-window outflow. Refund and CC
+    // Payment excluded (wrong direction); 1990 row excluded (out of range).
     expect(Math.abs(Number(rows[0].total))).toBeCloseTo(50, 2);
+  }, 60_000);
+
+  it("respects fromIso bound: out-of-range rows are excluded", async () => {
+    const { db } = await import("@/lib/db/client");
+    const { users, financialAccounts, transactions } = await import("@/lib/db/schema");
+    const { getSpendByCategory } = await import("@/lib/queries/dashboard");
+
+    await db.insert(users).values({ id: "u-donut-range", name: "DonutRange", email: "donut-range@x" });
+    const [acc] = await db
+      .insert(financialAccounts)
+      .values({ userId: "u-donut-range", name: "Checking", kind: "checking", currency: "USD" })
+      .returning();
+
+    await db.insert(transactions).values([
+      {
+        userId: "u-donut-range",
+        financialAccountId: acc.id,
+        postedAt: "2026-02-15",
+        description: "In window",
+        amount: "-75.00",
+        currency: "USD",
+        direction: "outflow",
+      },
+      {
+        userId: "u-donut-range",
+        financialAccountId: acc.id,
+        postedAt: "1990-01-01",
+        description: "Out of window",
+        amount: "-9999.00",
+        currency: "USD",
+        direction: "outflow",
+      },
+    ]);
+
+    const rows = await getSpendByCategory("u-donut-range", "2026-01-01", null);
+
+    expect(rows).toHaveLength(1);
+    expect(Math.abs(Number(rows[0].total))).toBeCloseTo(75, 2);
   }, 60_000);
 });
