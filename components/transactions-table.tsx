@@ -20,6 +20,7 @@ type Row = {
   currency: string;
   categoryId: string | null;
   direction: "outflow" | "inflow" | "transfer";
+  account?: { name: string; last4: string | null };
 };
 
 type Category = { id: string; name: string; color: string };
@@ -33,9 +34,11 @@ const fmt = (amount: string, currency: string) =>
 export function TransactionsTable({
   rows,
   categories,
+  showAccount = false,
 }: {
   rows: Row[];
   categories: Category[];
+  showAccount?: boolean;
 }) {
   if (rows.length === 0) {
     return <p className="text-sm text-muted-foreground">No transactions.</p>;
@@ -45,6 +48,7 @@ export function TransactionsTable({
       <TableHeader>
         <TableRow>
           <TableHead className="w-[110px]">Date</TableHead>
+          {showAccount && <TableHead className="w-[180px]">Account</TableHead>}
           <TableHead>Description</TableHead>
           <TableHead className="w-[180px]">Category</TableHead>
           <TableHead className="w-[140px]">Direction</TableHead>
@@ -55,6 +59,20 @@ export function TransactionsTable({
         {rows.map((r) => (
           <TableRow key={r.id}>
             <TableCell>{r.postedAt}</TableCell>
+            {showAccount && (
+              <TableCell className="whitespace-nowrap text-sm">
+                {r.account ? (
+                  <>
+                    {r.account.name}
+                    {r.account.last4 && (
+                      <span className="ml-1 text-muted-foreground">··{r.account.last4}</span>
+                    )}
+                  </>
+                ) : (
+                  <span className="text-muted-foreground">—</span>
+                )}
+              </TableCell>
+            )}
             <TableCell>{r.description}</TableCell>
             <TableCell>
               <CategoryPicker

@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth";
 import { db } from "@/lib/db/client";
 import { transactions, categories, financialAccounts } from "@/lib/db/schema";
 import { TransactionsTable } from "@/components/transactions-table";
+import { stitchAccountsIntoRows } from "@/lib/transactions/stitch-accounts";
 
 type Search = { account?: string; category?: string; q?: string; from?: string; to?: string };
 
@@ -60,7 +61,7 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
         <button className="rounded border bg-secondary px-3 py-1" type="submit">Apply</button>
       </form>
 
-      <TransactionsTable rows={rows} categories={cats} />
+      <TransactionsTable rows={stitchAccountsIntoRows(rows, accts)} categories={cats} showAccount />
     </div>
   );
 }

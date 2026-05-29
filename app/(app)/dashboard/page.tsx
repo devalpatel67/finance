@@ -2,12 +2,13 @@ import { headers } from "next/headers";
 import { desc, eq } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db/client";
-import { transactions, categories } from "@/lib/db/schema";
+import { transactions, categories, financialAccounts } from "@/lib/db/schema";
 import { Card } from "@/components/ui/card";
 import { SpendDonut } from "@/components/spend-donut";
 import { EmptyState } from "@/components/empty-state";
 import { TransactionsTable } from "@/components/transactions-table";
 import { getSpendByCategory } from "@/lib/queries/dashboard";
+import { stitchAccountsIntoRows } from "@/lib/transactions/stitch-accounts";
 
 export default async function DashboardPage() {
   const session = (await auth.api.getSession({ headers: await headers() }))!;
@@ -40,6 +41,11 @@ export default async function DashboardPage() {
     .orderBy(desc(transactions.postedAt))
     .limit(10);
 
+  const accts = await db
+    .select()
+    .from(financialAccounts)
+    .where(eq(financialAccounts.userId, userId));
+
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-semibold">Dashboard</h1>
@@ -58,7 +64,7 @@ export default async function DashboardPage() {
 
           <Card className="p-4">
             <h2 className="mb-2 text-lg font-medium">Recent transactions</h2>
-            <TransactionsTable rows={recent} categories={cats} />
+            <TransactionsTable rows={stitchAccountsIntoRows(recent, accts)} categories={cats} showAccount />
           </Card>
         </>
       )}
