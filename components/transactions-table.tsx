@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/table";
 
 import { CategoryPicker } from "./category-picker";
-import { DirectionPicker } from "./direction-picker";
+import { DirectionBadge } from "./direction-badge";
 
 type Row = {
   id: string;
@@ -82,10 +82,7 @@ export function TransactionsTable({
               />
             </TableCell>
             <TableCell>
-              <DirectionPicker
-                transactionId={r.id}
-                direction={r.direction}
-              />
+              <DirectionBadge direction={r.direction} />
             </TableCell>
             <TableCell className="text-right tabular-nums text-foreground">
               {fmt(r.amount, r.currency)}
