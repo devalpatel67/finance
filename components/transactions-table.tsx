@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/table";
 
 import { CategoryPicker } from "./category-picker";
+import { DirectionPicker } from "./direction-picker";
 
 type Row = {
   id: string;
@@ -18,6 +19,8 @@ type Row = {
   amount: string;
   currency: string;
   categoryId: string | null;
+  direction: "outflow" | "inflow" | "transfer";
+  account?: { name: string; last4: string | null };
 };
 
 type Category = { id: string; name: string; color: string };
@@ -26,14 +29,16 @@ const fmt = (amount: string, currency: string) =>
   new Intl.NumberFormat(undefined, {
     style: "currency",
     currency,
-  }).format(Number(amount));
+  }).format(Math.abs(Number(amount)));
 
 export function TransactionsTable({
   rows,
   categories,
+  showAccount = false,
 }: {
   rows: Row[];
   categories: Category[];
+  showAccount?: boolean;
 }) {
   if (rows.length === 0) {
     return <p className="text-sm text-muted-foreground">No transactions.</p>;
@@ -43,8 +48,10 @@ export function TransactionsTable({
       <TableHeader>
         <TableRow>
           <TableHead className="w-[110px]">Date</TableHead>
+          {showAccount && <TableHead className="w-[180px]">Account</TableHead>}
           <TableHead>Description</TableHead>
           <TableHead className="w-[180px]">Category</TableHead>
+          <TableHead className="w-[140px]">Direction</TableHead>
           <TableHead className="w-[120px] text-right">Amount</TableHead>
         </TableRow>
       </TableHeader>
@@ -52,6 +59,20 @@ export function TransactionsTable({
         {rows.map((r) => (
           <TableRow key={r.id}>
             <TableCell>{r.postedAt}</TableCell>
+            {showAccount && (
+              <TableCell className="whitespace-nowrap text-sm">
+                {r.account ? (
+                  <>
+                    {r.account.name}
+                    {r.account.last4 && (
+                      <span className="ml-1 text-muted-foreground">··{r.account.last4}</span>
+                    )}
+                  </>
+                ) : (
+                  <span className="text-muted-foreground">—</span>
+                )}
+              </TableCell>
+            )}
             <TableCell>{r.description}</TableCell>
             <TableCell>
               <CategoryPicker
@@ -60,11 +81,13 @@ export function TransactionsTable({
                 categories={categories}
               />
             </TableCell>
-            <TableCell
-              className={`text-right tabular-nums ${
-                Number(r.amount) < 0 ? "text-foreground" : "text-emerald-600"
-              }`}
-            >
+            <TableCell>
+              <DirectionPicker
+                transactionId={r.id}
+                direction={r.direction}
+              />
+            </TableCell>
+            <TableCell className="text-right tabular-nums text-foreground">
               {fmt(r.amount, r.currency)}
             </TableCell>
           </TableRow>

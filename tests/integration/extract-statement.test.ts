@@ -38,8 +38,9 @@ vi.mock("@/lib/llm/extraction", async (orig) => {
     extractFromPdf: vi.fn(async () => ({
       account_summary: { period_start: "2026-04-01", period_end: "2026-04-30", currency: "USD" },
       transactions: [
-        { posted_at: "2026-04-03", description: "Whole Foods", amount: -42.17, suggested_category: "Groceries" },
-        { posted_at: "2026-04-10", description: "Payroll",     amount:  3200.00, suggested_category: "Income" },
+        { posted_at: "2026-04-03", description: "Whole Foods", amount: -42.17, suggested_category: "Groceries", direction: "outflow" },
+        { posted_at: "2026-04-10", description: "Payroll",     amount:  3200.00, suggested_category: "Income",   direction: "inflow" },
+        { posted_at: "2026-04-15", description: "Unknown Fee", amount:   -9.99, suggested_category: "Fees" },
       ],
     })),
   };
@@ -81,7 +82,14 @@ describe("extractStatement", () => {
 
     const { transactions, statements } = await import("@/lib/db/schema");
     const rows = await db.select().from(transactions);
-    expect(rows).toHaveLength(2);
+    expect(rows).toHaveLength(3);
+
+    const byDescription = Object.fromEntries(rows.map((r) => [r.description, r]));
+    expect(byDescription["Whole Foods"].direction).toBe("outflow");
+    expect(byDescription["Payroll"].direction).toBe("inflow");
+    // Mock omitted direction; fallback uses sign (negative -> outflow).
+    expect(byDescription["Unknown Fee"].direction).toBe("outflow");
+
     const [s] = await db.select().from(statements);
     expect(s.extractionStatus).toBe("succeeded");
     expect(s.periodStart).toBe("2026-04-01");
