@@ -52,19 +52,12 @@ vi.mock("next/navigation", () => ({
   redirect: vi.fn((url: string) => { throw new Error(`REDIRECT:${url}`); }),
 }));
 
-async function uploadAndCaptureRedirect(accountId: string, bytes: string): Promise<string> {
+async function upload(accountId: string, bytes: string) {
   const { extractStatement } = await import("@/lib/actions/extract-statement");
   const fd = new FormData();
   fd.append("financialAccountId", accountId);
   fd.append("file", new File([Buffer.from(bytes)], "stmt.pdf", { type: "application/pdf" }));
-  try {
-    await extractStatement(fd);
-    throw new Error("expected redirect");
-  } catch (e) {
-    const m = /REDIRECT:(\/statements\/[^?]+)/.exec((e as Error).message);
-    if (!m) throw e;
-    return m[1];
-  }
+  return extractStatement(fd);
 }
 
 describe("extractStatement content-hash dedup", () => {
@@ -82,20 +75,23 @@ describe("extractStatement content-hash dedup", () => {
       { userId: "u1", name: "Uncategorized", isSystem: true },
     ]);
 
-    const first = await uploadAndCaptureRedirect(acc.id, "%PDF-1.4 SAME-BYTES");
+    const first = await upload(acc.id, "%PDF-1.4 SAME-BYTES");
+    expect(first.duplicate).toBe(false);
     expect(extractMock).toHaveBeenCalledTimes(1);
 
-    const second = await uploadAndCaptureRedirect(acc.id, "%PDF-1.4 SAME-BYTES");
-    // Same statement, extraction not re-run.
-    expect(second).toBe(first);
+    const second = await upload(acc.id, "%PDF-1.4 SAME-BYTES");
+    // Same statement, flagged as duplicate, extraction not re-run.
+    expect(second.statementId).toBe(first.statementId);
+    expect(second.duplicate).toBe(true);
     expect(extractMock).toHaveBeenCalledTimes(1);
 
     expect(await db.select().from(statements)).toHaveLength(1);
     expect(await db.select().from(transactions)).toHaveLength(2);
 
     // Different bytes still create a new statement.
-    const third = await uploadAndCaptureRedirect(acc.id, "%PDF-1.4 DIFFERENT-BYTES");
-    expect(third).not.toBe(first);
+    const third = await upload(acc.id, "%PDF-1.4 DIFFERENT-BYTES");
+    expect(third.statementId).not.toBe(first.statementId);
+    expect(third.duplicate).toBe(false);
     expect(extractMock).toHaveBeenCalledTimes(2);
     expect(await db.select().from(statements)).toHaveLength(2);
   }, 90_000);

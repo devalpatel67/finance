@@ -71,9 +71,7 @@ describe("extract applies category rules", () => {
     const fd = new FormData();
     fd.append("financialAccountId", acc.id);
     fd.append("file", new File([Buffer.from("%PDF-1.4 x")], "s.pdf", { type: "application/pdf" }));
-    try { await extractStatement(fd); } catch (e) {
-      if (!/REDIRECT:/.test((e as Error).message)) throw e;
-    }
+    await extractStatement(fd);
 
     const rows = await db.select().from(transactions);
     const sbux = rows.find((r) => r.description.includes("STARBUCKS"))!;

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -28,6 +29,7 @@ export function UploadStatementDialog({
   const [open, setOpen] = useState(false);
   const [pending, start] = useTransition();
   const [accountId, setAccountId] = useState(accounts[0]?.id ?? "");
+  const router = useRouter();
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -39,7 +41,10 @@ export function UploadStatementDialog({
             start(async () => {
               fd.set("financialAccountId", accountId);
               try {
-                await extractStatement(fd);
+                const { statementId, duplicate } = await extractStatement(fd);
+                setOpen(false);
+                toast.success(duplicate ? "Already uploaded — opening it" : "Statement extracted");
+                router.push(`/statements/${statementId}${duplicate ? "?duplicate=1" : ""}`);
               } catch (e) {
                 toast.error("Upload failed", { description: (e as Error).message });
               }
