@@ -6,6 +6,7 @@ import { auth } from "@/lib/auth";
 import { scopedDb } from "@/lib/db/scoped";
 import { financialAccounts, statements, transactions, categories } from "@/lib/db/schema";
 import { TransactionsTable } from "@/components/transactions-table";
+import { DeleteAccountButton } from "@/components/delete-account-button";
 
 export default async function AccountDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -29,11 +30,18 @@ export default async function AccountDetail({ params }: { params: Promise<{ id: 
 
   return (
     <div className="space-y-6">
-      <header>
-        <h1 className="text-2xl font-semibold">{a.name}</h1>
-        <p className="text-muted-foreground">
-          {a.kind}{a.institution ? ` · ${a.institution}` : ""}{a.last4 ? ` · …${a.last4}` : ""} · {a.currency}
-        </p>
+      <header className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold">{a.name}</h1>
+          <p className="text-muted-foreground">
+            {a.kind}{a.institution ? ` · ${a.institution}` : ""}{a.last4 ? ` · …${a.last4}` : ""} · {a.currency}
+          </p>
+        </div>
+        <DeleteAccountButton
+          accountId={a.id}
+          accountName={a.name}
+          empty={stmts.length === 0 && txns.length === 0}
+        />
       </header>
 
       <section>
