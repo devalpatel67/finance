@@ -14,6 +14,7 @@ const nav = [
   { href: "/accounts", label: "Accounts" },
   { href: "/transactions", label: "Transactions" },
   { href: "/categories", label: "Categories" },
+  { href: "/rules", label: "Rules" },
   { href: "/settings", label: "Settings" },
 ];
 
