@@ -8,7 +8,7 @@ import { auth } from "@/lib/auth";
 import { db } from "@/lib/db/client";
 import { categories, statements, transactions } from "@/lib/db/schema";
 import { getStatementPdf } from "@/lib/storage/minio";
-import { extractFromPdf } from "@/lib/llm/extraction";
+import { extractFromPdf, resolveDirection } from "@/lib/llm/extraction";
 import { pickCategoryId } from "@/lib/categories/resolve";
 import { ALLOWED_MODEL_IDS, type ModelId } from "@/lib/llm/models";
 
@@ -56,6 +56,7 @@ export async function reprocessStatement(statementId: string, model: string) {
           postedAt: t.posted_at,
           description: t.description,
           amount: t.amount.toFixed(2),
+          direction: resolveDirection(t),
           currency: result.account_summary.currency,
           categoryId: pickCategoryId(cats, t.suggested_category),
           rawExtraction: t,
