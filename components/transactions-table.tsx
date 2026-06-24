@@ -16,6 +16,7 @@ type Row = {
   id: string;
   postedAt: string;
   description: string;
+  merchant: string | null;
   amount: string;
   currency: string;
   categoryId: string | null;
@@ -96,8 +97,11 @@ export function TransactionsTable({
                 )}
               </TableCell>
             )}
-            <TableCell className="font-medium text-foreground/90" title={r.description}>
-              {r.description}
+            <TableCell title={r.description}>
+              <div className="font-medium text-foreground/90">{r.merchant ?? r.description}</div>
+              {r.merchant && (
+                <div className="truncate text-xs text-muted-foreground">{r.description}</div>
+              )}
             </TableCell>
             <TableCell>
               <CategoryPicker
