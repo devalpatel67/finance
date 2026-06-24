@@ -122,6 +122,7 @@ export const transactions = pgTable(
     categorySource: text("category_source", {
       enum: ["suggested", "rule", "manual"],
     }).notNull().default("suggested"),
+    merchant: text("merchant"),
     rawExtraction: jsonb("raw_extraction"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
   },
