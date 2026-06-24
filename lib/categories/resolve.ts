@@ -4,14 +4,6 @@ export type CategoryRef = { id: string; name: string };
 export type CategorySource = "suggested" | "rule" | "manual";
 export type RuleRef = { keyword: string; categoryId: string };
 
-export function pickCategoryId(cats: CategoryRef[], suggested: string): string | null {
-  const lower = suggested.trim().toLowerCase();
-  const hit = cats.find((c) => c.name.toLowerCase() === lower);
-  if (hit) return hit.id;
-  const fallback = cats.find((c) => c.name.toLowerCase() === "uncategorized");
-  return fallback?.id ?? null;
-}
-
 /**
  * Resolves a category by precedence: a matching rule (longest keyword wins;
  * callers pass rules newest-first so ties pick the newest) beats the LLM's

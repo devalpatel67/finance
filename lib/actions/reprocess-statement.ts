@@ -1,15 +1,15 @@
 "use server";
 
-import { and, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db/client";
-import { categories, financialAccounts, statements, transactions } from "@/lib/db/schema";
+import { categories, categoryRules, financialAccounts, statements, transactions } from "@/lib/db/schema";
 import { getStatementPdf } from "@/lib/storage/minio";
 import { extractFromPdf, resolveDirection } from "@/lib/llm/extraction";
-import { pickCategoryId } from "@/lib/categories/resolve";
+import { resolveCategory } from "@/lib/categories/resolve";
 import { ALLOWED_MODEL_IDS, type ModelId } from "@/lib/llm/models";
 import { reconcile } from "@/lib/statements/reconcile";
 
@@ -33,6 +33,11 @@ export async function reprocessStatement(statementId: string, model: string) {
     .select({ id: categories.id, name: categories.name })
     .from(categories)
     .where(eq(categories.userId, session.user.id));
+  const rules = await db
+    .select({ keyword: categoryRules.keyword, categoryId: categoryRules.categoryId })
+    .from(categoryRules)
+    .where(eq(categoryRules.userId, session.user.id))
+    .orderBy(desc(categoryRules.createdAt));
 
   const [acct] = await db
     .select({ kind: financialAccounts.kind })
@@ -76,7 +81,15 @@ export async function reprocessStatement(statementId: string, model: string) {
           amount: t.amount.toFixed(2),
           direction: resolveDirection(t),
           currency: result.account_summary.currency,
-          categoryId: pickCategoryId(cats, t.suggested_category),
+          ...(() => {
+              const r = resolveCategory({
+                description: t.description,
+                suggestedLabel: t.suggested_category,
+                rules,
+                categories: cats,
+              });
+              return { categoryId: r.categoryId, categorySource: r.source };
+            })(),
           rawExtraction: t,
         })),
       );

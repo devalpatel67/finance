@@ -3,16 +3,16 @@
 import { randomUUID } from "node:crypto";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { and, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db/client";
-import { categories, financialAccounts, statements, transactions, users } from "@/lib/db/schema";
+import { categories, categoryRules, financialAccounts, statements, transactions, users } from "@/lib/db/schema";
 import { putStatementPdf } from "@/lib/storage/minio";
 import { sha256Hex } from "@/lib/statements/hash";
 import { extractFromPdf, resolveDirection } from "@/lib/llm/extraction";
-import { pickCategoryId } from "@/lib/categories/resolve";
+import { resolveCategory } from "@/lib/categories/resolve";
 import { ALLOWED_MODEL_IDS, DEFAULT_MODEL, type ModelId } from "@/lib/llm/models";
 import { reconcile } from "@/lib/statements/reconcile";
 
@@ -122,6 +122,11 @@ export async function extractStatement(formData: FormData) {
     .select({ id: categories.id, name: categories.name })
     .from(categories)
     .where(eq(categories.userId, userId));
+  const rules = await db
+    .select({ keyword: categoryRules.keyword, categoryId: categoryRules.categoryId })
+    .from(categoryRules)
+    .where(eq(categoryRules.userId, userId))
+    .orderBy(desc(categoryRules.createdAt));
 
   const rec = reconcile({
     kind: account.kind,
@@ -158,7 +163,15 @@ export async function extractStatement(formData: FormData) {
             amount: t.amount.toFixed(2),
             direction: resolveDirection(t),
             currency: result.account_summary.currency,
-            categoryId: pickCategoryId(cats, t.suggested_category),
+            ...(() => {
+              const r = resolveCategory({
+                description: t.description,
+                suggestedLabel: t.suggested_category,
+                rules,
+                categories: cats,
+              });
+              return { categoryId: r.categoryId, categorySource: r.source };
+            })(),
             rawExtraction: t,
           })),
         )
