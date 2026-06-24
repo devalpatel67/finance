@@ -7,7 +7,8 @@ type ScopedTable =
   | typeof schema.statements
   | typeof schema.transactions
   | typeof schema.categories
-  | typeof schema.budgets;
+  | typeof schema.budgets
+  | typeof schema.categoryRules;
 
 export function scopeFilter<T extends ScopedTable>(table: T, userId: string): SQL {
   return eq(table.userId, userId);
