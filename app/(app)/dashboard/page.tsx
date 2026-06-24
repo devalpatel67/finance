@@ -1,7 +1,7 @@
 import { headers } from "next/headers";
-import { desc, eq } from "drizzle-orm";
+import { desc } from "drizzle-orm";
 import { auth } from "@/lib/auth";
-import { db } from "@/lib/db/client";
+import { scopedDb } from "@/lib/db/scoped";
 import { transactions, categories, financialAccounts } from "@/lib/db/schema";
 import { Card } from "@/components/ui/card";
 import { SpendDonut } from "@/components/spend-donut";
@@ -23,10 +23,11 @@ export default async function DashboardPage({
   const session = (await auth.api.getSession({ headers: await headers() }))!;
   const userId = session.user.id;
 
+  const sdb = scopedDb(userId);
   const range = parseRange(sp);
   const spendRows = await getSpendByCategory(userId, range.fromIso, range.toIso);
 
-  const cats = await db.select().from(categories).where(eq(categories.userId, userId));
+  const cats = await sdb.selectAll(categories);
   const catById = new Map(cats.map((c) => [c.id, c]));
 
   const donut = spendRows
@@ -40,17 +41,12 @@ export default async function DashboardPage({
     })
     .sort((a, b) => b.value - a.value);
 
-  const recent = await db
-    .select()
-    .from(transactions)
-    .where(eq(transactions.userId, userId))
-    .orderBy(desc(transactions.postedAt))
-    .limit(10);
+  const recent = await sdb.selectAll(transactions, {
+    orderBy: desc(transactions.postedAt),
+    limit: 10,
+  });
 
-  const accts = await db
-    .select()
-    .from(financialAccounts)
-    .where(eq(financialAccounts.userId, userId));
+  const accts = await sdb.selectAll(financialAccounts);
 
   return (
     <div className="space-y-6">

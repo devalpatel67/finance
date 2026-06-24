@@ -1,5 +1,6 @@
 import { and, eq, gte, lte, sql, SQL } from "drizzle-orm";
 import { db } from "@/lib/db/client";
+import { scopeFilter } from "@/lib/db/scoped";
 import { transactions } from "@/lib/db/schema";
 
 export type SpendByCategoryRow = {
@@ -20,7 +21,7 @@ export async function getSpendByCategory(
   toIso: string | null,
 ): Promise<SpendByCategoryRow[]> {
   const filters: SQL[] = [
-    eq(transactions.userId, userId),
+    scopeFilter(transactions, userId),
     eq(transactions.direction, "outflow"),
   ];
   if (fromIso) filters.push(gte(transactions.postedAt, fromIso));

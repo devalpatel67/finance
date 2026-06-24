@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { headers } from "next/headers";
-import { eq, desc } from "drizzle-orm";
+import { desc } from "drizzle-orm";
 import { auth } from "@/lib/auth";
-import { db } from "@/lib/db/client";
+import { scopedDb } from "@/lib/db/scoped";
 import { financialAccounts } from "@/lib/db/schema";
 import { AddAccountDialog } from "@/components/add-account-dialog";
 import { Button } from "@/components/ui/button";
@@ -11,11 +11,9 @@ import { EmptyState } from "@/components/empty-state";
 
 export default async function AccountsPage() {
   const session = (await auth.api.getSession({ headers: await headers() }))!;
-  const rows = await db
-    .select()
-    .from(financialAccounts)
-    .where(eq(financialAccounts.userId, session.user.id))
-    .orderBy(desc(financialAccounts.createdAt));
+  const rows = await scopedDb(session.user.id).selectAll(financialAccounts, {
+    orderBy: desc(financialAccounts.createdAt),
+  });
 
   return (
     <div className="space-y-4">

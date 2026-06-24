@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
-import { eq } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { AppSidebar } from "@/components/app-sidebar";
 import {
@@ -9,8 +8,9 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { seedDefaultCategoriesIfMissing } from "@/lib/categories/seed";
-import { db } from "@/lib/db/client";
-import { financialAccounts, users } from "@/lib/db/schema";
+import { scopedDb } from "@/lib/db/scoped";
+import { getMe } from "@/lib/queries/me";
+import { financialAccounts } from "@/lib/db/schema";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const session = await auth.api.getSession({ headers: await headers() });
@@ -18,15 +18,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   await seedDefaultCategoriesIfMissing(session.user.id);
 
-  const [me] = await db
-    .select({ preferredModel: users.preferredModel })
-    .from(users)
-    .where(eq(users.id, session.user.id))
-    .limit(1);
-  const accounts = await db
-    .select({ id: financialAccounts.id, name: financialAccounts.name, institution: financialAccounts.institution })
-    .from(financialAccounts)
-    .where(eq(financialAccounts.userId, session.user.id));
+  const me = await getMe(session.user.id);
+  const accounts = await scopedDb(session.user.id).selectAll(financialAccounts);
 
   return (
     <SidebarProvider>

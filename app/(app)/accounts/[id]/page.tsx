@@ -1,31 +1,31 @@
 import Link from "next/link";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
-import { and, eq, desc, asc } from "drizzle-orm";
+import { eq, desc, asc } from "drizzle-orm";
 import { auth } from "@/lib/auth";
-import { db } from "@/lib/db/client";
+import { scopedDb } from "@/lib/db/scoped";
 import { financialAccounts, statements, transactions, categories } from "@/lib/db/schema";
 import { TransactionsTable } from "@/components/transactions-table";
 
 export default async function AccountDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const session = (await auth.api.getSession({ headers: await headers() }))!;
+  const sdb = scopedDb(session.user.id);
 
-  const [a] = await db.select().from(financialAccounts)
-    .where(and(eq(financialAccounts.id, id), eq(financialAccounts.userId, session.user.id)))
-    .limit(1);
+  const [a] = await sdb.selectAll(financialAccounts, { where: eq(financialAccounts.id, id), limit: 1 });
   if (!a) notFound();
 
-  const stmts = await db.select().from(statements)
-    .where(eq(statements.financialAccountId, a.id))
-    .orderBy(desc(statements.uploadedAt));
+  const stmts = await sdb.selectAll(statements, {
+    where: eq(statements.financialAccountId, a.id),
+    orderBy: desc(statements.uploadedAt),
+  });
 
-  const txns = await db.select().from(transactions)
-    .where(eq(transactions.financialAccountId, a.id))
-    .orderBy(asc(transactions.postedAt));
+  const txns = await sdb.selectAll(transactions, {
+    where: eq(transactions.financialAccountId, a.id),
+    orderBy: asc(transactions.postedAt),
+  });
 
-  const cats = await db.select().from(categories)
-    .where(eq(categories.userId, session.user.id));
+  const cats = await sdb.selectAll(categories);
 
   return (
     <div className="space-y-6">

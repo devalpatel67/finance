@@ -1,28 +1,34 @@
 import { headers } from "next/headers";
 import { and, desc, eq, gte, ilike, lte, SQL } from "drizzle-orm";
 import { auth } from "@/lib/auth";
-import { db } from "@/lib/db/client";
+import { scopedDb } from "@/lib/db/scoped";
 import { transactions, categories, financialAccounts } from "@/lib/db/schema";
 import { TransactionsTable } from "@/components/transactions-table";
 import { stitchAccountsIntoRows } from "@/lib/transactions/stitch-accounts";
+import { escapeLike, parseUuid } from "@/lib/transactions/filters";
 
 type Search = { account?: string; category?: string; q?: string; from?: string; to?: string };
 
 export default async function TransactionsPage({ searchParams }: { searchParams: Promise<Search> }) {
   const sp = await searchParams;
   const session = (await auth.api.getSession({ headers: await headers() }))!;
+  const sdb = scopedDb(session.user.id);
 
-  const filters: SQL[] = [eq(transactions.userId, session.user.id)];
-  if (sp.account)  filters.push(eq(transactions.financialAccountId, sp.account));
-  if (sp.category) filters.push(eq(transactions.categoryId, sp.category));
-  if (sp.q)        filters.push(ilike(transactions.description, `%${sp.q}%`));
-  if (sp.from)     filters.push(gte(transactions.postedAt, sp.from));
-  if (sp.to)       filters.push(lte(transactions.postedAt, sp.to));
+  const account = parseUuid(sp.account);
+  const category = parseUuid(sp.category);
 
+  const filters: SQL[] = [];
+  if (account)  filters.push(eq(transactions.financialAccountId, account));
+  if (category) filters.push(eq(transactions.categoryId, category));
+  if (sp.q)     filters.push(ilike(transactions.description, `%${escapeLike(sp.q)}%`));
+  if (sp.from)  filters.push(gte(transactions.postedAt, sp.from));
+  if (sp.to)    filters.push(lte(transactions.postedAt, sp.to));
+
+  const extra = filters.length ? and(...filters) : undefined;
   const [rows, cats, accts] = await Promise.all([
-    db.select().from(transactions).where(and(...filters)).orderBy(desc(transactions.postedAt)).limit(500),
-    db.select().from(categories).where(eq(categories.userId, session.user.id)),
-    db.select().from(financialAccounts).where(eq(financialAccounts.userId, session.user.id)),
+    sdb.selectAll(transactions, { where: extra, orderBy: desc(transactions.postedAt), limit: 500 }),
+    sdb.selectAll(categories),
+    sdb.selectAll(financialAccounts),
   ]);
 
   return (
@@ -34,14 +40,14 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
       <form className="flex flex-wrap items-end gap-2 text-sm" method="get">
         <label className="grid gap-1">
           <span className="text-muted-foreground">Account</span>
-          <select name="account" defaultValue={sp.account ?? ""} className="rounded border px-2 py-1">
+          <select name="account" defaultValue={account ?? ""} className="rounded border px-2 py-1">
             <option value="">All</option>
             {accts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
           </select>
         </label>
         <label className="grid gap-1">
           <span className="text-muted-foreground">Category</span>
-          <select name="category" defaultValue={sp.category ?? ""} className="rounded border px-2 py-1">
+          <select name="category" defaultValue={category ?? ""} className="rounded border px-2 py-1">
             <option value="">All</option>
             {cats.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>

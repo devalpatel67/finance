@@ -1,9 +1,9 @@
 import { notFound } from "next/navigation";
-import { and, asc, eq } from "drizzle-orm";
+import { asc, eq } from "drizzle-orm";
 import { headers } from "next/headers";
 
 import { auth } from "@/lib/auth";
-import { db } from "@/lib/db/client";
+import { scopedDb } from "@/lib/db/scoped";
 import {
   categories,
   financialAccounts,
@@ -24,32 +24,22 @@ export default async function StatementDetail({
   const { id } = await params;
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) notFound();
+  const sdb = scopedDb(session.user.id);
 
-  const [s] = await db
-    .select()
-    .from(statements)
-    .where(and(eq(statements.id, id), eq(statements.userId, session.user.id)))
-    .limit(1);
+  const [s] = await sdb.selectAll(statements, { where: eq(statements.id, id), limit: 1 });
   if (!s) notFound();
 
-  const [acc] = await db
-    .select()
-    .from(financialAccounts)
-    .where(eq(financialAccounts.id, s.financialAccountId))
-    .limit(1);
+  const [acc] = await sdb.selectAll(financialAccounts, {
+    where: eq(financialAccounts.id, s.financialAccountId),
+    limit: 1,
+  });
 
-  const rows = await db
-    .select()
-    .from(transactions)
-    .where(
-      and(eq(transactions.statementId, s.id), eq(transactions.userId, session.user.id)),
-    )
-    .orderBy(asc(transactions.postedAt));
+  const rows = await sdb.selectAll(transactions, {
+    where: eq(transactions.statementId, s.id),
+    orderBy: asc(transactions.postedAt),
+  });
 
-  const cats = await db
-    .select()
-    .from(categories)
-    .where(eq(categories.userId, session.user.id));
+  const cats = await sdb.selectAll(categories);
 
   const pdfUrl = s.storageKey
     ? await presignedStatementUrl({ bucket: s.storageBucket, key: s.storageKey })
