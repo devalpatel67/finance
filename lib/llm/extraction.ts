@@ -21,6 +21,7 @@ export const ExtractionResult = z.object({
       amount: z.number().finite(),
       suggested_category: z.string().min(1),
       direction: z.enum(["outflow", "inflow", "transfer"]).optional(),
+      merchant: z.string().min(1).optional(),
     }),
   ),
 });
@@ -43,6 +44,7 @@ Rules:
 - suggested_category must be a short label like "Groceries", "Dining", "Transport", "Utilities", "Bills", "Subscriptions", "Shopping", "Entertainment", "Health", "Travel", "Income", "Transfers", "Fees", "Other".
 - Set \`direction\` to \`outflow\` for money leaving the account (purchases, fees, ATM withdrawals), \`inflow\` for money entering (deposits, refunds, paychecks), or \`transfer\` for movements between the user's own accounts (e.g. credit card payments, internal transfers). When in doubt, infer from the sign of amount.
 - Report the statement's stated opening/previous balance as \`opening_balance\` and the closing/new balance as \`closing_balance\`, as printed. For credit-card statements these are the previous balance and the new balance owed. Omit them only if the statement does not show them.
+- Also return \`merchant\`: a short, human-friendly business or brand name for the transaction (e.g. "Amazon", "A&W", "Spotify", "Interest charge"). Strip store numbers, URLs, cities and province codes. Omit it only when no sensible name can be derived.
 - Include every transaction; do not summarize or skip rows.`;
 
 export function buildSystemPrompt(categoryNames: string[]): string {
@@ -87,6 +89,7 @@ const JSON_SCHEMA = {
             amount: { type: "number" },
             suggested_category: { type: "string" },
             direction: { type: "string", enum: ["outflow", "inflow", "transfer"] },
+            merchant: { type: "string" },
           },
         },
       },
