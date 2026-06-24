@@ -21,10 +21,9 @@ const nav = [
 type Props = {
   user: { name: string; email: string };
   accounts: { id: string; name: string; institution: string | null }[];
-  preferredModel: string;
 };
 
-export function AppSidebar({ user, accounts, preferredModel }: Props) {
+export function AppSidebar({ user, accounts }: Props) {
   return (
     <Sidebar>
       <SidebarHeader className="px-4 py-3 space-y-3">

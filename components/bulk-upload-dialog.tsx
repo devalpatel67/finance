@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -18,7 +18,7 @@ import { validateUploadFile } from "@/lib/upload/validate-file";
 
 type Account = { id: string; name: string; institution: string | null };
 type Status = "queued" | "uploading" | "extracting" | "done" | "duplicate" | "error";
-type Item = { id: string; file: File; status: Status; error?: string; result?: IngestResult };
+type Item = { id: string; file: File; status: Status; error?: string; retryable?: boolean; result?: IngestResult };
 
 const CONCURRENCY = 3;
 
@@ -38,7 +38,6 @@ export function BulkUploadDialog({
   const [items, setItems] = useState<Item[]>([]);
   const [accounts, setAccounts] = useState<Account[]>(initialAccounts);
   const [running, setRunning] = useState(false);
-  const [, startReassign] = useTransition();
   const router = useRouter();
 
   function patch(id: string, next: Partial<Item>) {
@@ -58,34 +57,41 @@ export function BulkUploadDialog({
     setItems((prev) => [...prev, ...added]);
   }
 
+  async function processItem(it: Item) {
+    patch(it.id, { status: "uploading", error: undefined, retryable: undefined });
+    const fd = new FormData();
+    fd.append("file", it.file);
+    patch(it.id, { status: "extracting" });
+    try {
+      const res = await ingestStatement(fd);
+      patch(it.id, { status: res.duplicate ? "duplicate" : "done", result: res });
+      if (res.account.autoCreated) {
+        setAccounts((prev) =>
+          prev.some((a) => a.id === res.account.id)
+            ? prev
+            : [...prev, { id: res.account.id, name: res.account.name, institution: null }]);
+      }
+    } catch (e) {
+      patch(it.id, { status: "error", error: (e as Error).message, retryable: true });
+    }
+  }
+
   async function start() {
     setRunning(true);
     const queued = items.filter((it) => it.status === "queued");
-    await runBatch(queued, async (it) => {
-      patch(it.id, { status: "uploading" });
-      const fd = new FormData();
-      fd.append("file", it.file);
-      patch(it.id, { status: "extracting" });
-      try {
-        const res = await ingestStatement(fd);
-        patch(it.id, { status: res.duplicate ? "duplicate" : "done", result: res });
-        if (res.account.autoCreated) {
-          setAccounts((prev) =>
-            prev.some((a) => a.id === res.account.id)
-              ? prev
-              : [...prev, { id: res.account.id, name: res.account.name, institution: null }]);
-        }
-      } catch (e) {
-        patch(it.id, { status: "error", error: (e as Error).message });
-      }
-    }, { concurrency: CONCURRENCY });
+    await runBatch(queued, processItem, { concurrency: CONCURRENCY });
     setRunning(false);
     router.refresh();
   }
 
+  function retry(itemId: string) {
+    const it = items.find((x) => x.id === itemId);
+    if (it) void processItem(it).then(() => router.refresh());
+  }
+
   function reassign(itemId: string, statementId: string, accountId: string) {
     const acct = accounts.find((a) => a.id === accountId);
-    startReassign(async () => {
+    void (async () => {
       try {
         await reassignStatementAccount({ statementId, accountId });
         setItems((prev) =>
@@ -100,7 +106,7 @@ export function BulkUploadDialog({
       } catch (e) {
         toast.error("Could not move statement", { description: (e as Error).message });
       }
-    });
+    })();
   }
 
   const summary = {
@@ -131,9 +137,20 @@ export function BulkUploadDialog({
               {items.map((it) => (
                 <li key={it.id} className="flex items-center justify-between gap-3 p-2">
                   <span className="min-w-0 flex-1 truncate" title={it.file.name}>{it.file.name}</span>
+                  {it.result?.account.autoCreated && (
+                    <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">New</span>
+                  )}
+                  {it.result?.needsReview && (
+                    <span className="shrink-0 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-amber-700">Review</span>
+                  )}
                   <span className={`shrink-0 text-xs ${it.status === "error" ? "text-destructive" : "text-muted-foreground"}`}>
                     {it.error ? `${labels[it.status]}: ${it.error}` : labels[it.status]}
                   </span>
+                  {it.status === "error" && it.retryable && (
+                    <Button variant="ghost" size="sm" className="h-7 shrink-0 text-xs" onClick={() => retry(it.id)}>
+                      Retry
+                    </Button>
+                  )}
                   {(it.status === "done" || it.status === "duplicate") && it.result && (
                     <Select value={it.result.account.id} onValueChange={(v) => reassign(it.id, it.result!.statementId, v)}>
                       <SelectTrigger className="h-7 w-44 shrink-0 text-xs">
