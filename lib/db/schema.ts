@@ -79,6 +79,12 @@ export const statements = pgTable(
     storageBucket: text("storage_bucket").notNull(),
     storageKey: text("storage_key").notNull(),
     contentHash: text("content_hash"),
+    openingBalance: numeric("opening_balance", { precision: 14, scale: 2 }),
+    closingBalance: numeric("closing_balance", { precision: 14, scale: 2 }),
+    reconciliationStatus: text("reconciliation_status", {
+      enum: ["reconciled", "discrepancy", "not_available", "not_applicable"],
+    }),
+    reconciliationDelta: numeric("reconciliation_delta", { precision: 14, scale: 2 }),
     modelUsed: text("model_used"),
     extractionStatus: text("extraction_status", { enum: ["pending", "succeeded", "failed"] }).notNull().default("pending"),
     extractionError: text("extraction_error"),

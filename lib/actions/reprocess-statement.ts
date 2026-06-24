@@ -6,11 +6,12 @@ import { revalidatePath } from "next/cache";
 
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db/client";
-import { categories, statements, transactions } from "@/lib/db/schema";
+import { categories, financialAccounts, statements, transactions } from "@/lib/db/schema";
 import { getStatementPdf } from "@/lib/storage/minio";
 import { extractFromPdf, resolveDirection } from "@/lib/llm/extraction";
 import { pickCategoryId } from "@/lib/categories/resolve";
 import { ALLOWED_MODEL_IDS, type ModelId } from "@/lib/llm/models";
+import { reconcile } from "@/lib/statements/reconcile";
 
 export async function reprocessStatement(statementId: string, model: string) {
   const session = await auth.api.getSession({ headers: await headers() });
@@ -33,6 +34,19 @@ export async function reprocessStatement(statementId: string, model: string) {
     .from(categories)
     .where(eq(categories.userId, session.user.id));
 
+  const [acct] = await db
+    .select({ kind: financialAccounts.kind })
+    .from(financialAccounts)
+    .where(eq(financialAccounts.id, s.financialAccountId))
+    .limit(1);
+
+  const rec = reconcile({
+    kind: acct.kind,
+    opening: result.account_summary.opening_balance ?? null,
+    closing: result.account_summary.closing_balance ?? null,
+    amounts: result.transactions.map((t) => t.amount),
+  });
+
   await db.transaction(async (tx) => {
     await tx.delete(transactions).where(eq(transactions.statementId, s.id));
     await tx
@@ -41,6 +55,10 @@ export async function reprocessStatement(statementId: string, model: string) {
         modelUsed: model,
         periodStart: result.account_summary.period_start,
         periodEnd: result.account_summary.period_end,
+        openingBalance: result.account_summary.opening_balance?.toFixed(2) ?? null,
+        closingBalance: result.account_summary.closing_balance?.toFixed(2) ?? null,
+        reconciliationStatus: rec.status,
+        reconciliationDelta: rec.delta == null ? null : rec.delta.toFixed(2),
         extractionStatus: "succeeded",
         extractionError: null,
         extractedAt: new Date(),

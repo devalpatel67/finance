@@ -67,6 +67,21 @@ describe("ExtractionResult schema", () => {
       }),
     ).toThrow();
   });
+
+  it("captures optional opening and closing balances", () => {
+    const parsed = ExtractionResult.parse({
+      account_summary: {
+        period_start: "2026-04-01",
+        period_end: "2026-04-30",
+        currency: "CAD",
+        opening_balance: 812.3,
+        closing_balance: 1204.55,
+      },
+      transactions: [],
+    });
+    expect(parsed.account_summary.opening_balance).toBe(812.3);
+    expect(parsed.account_summary.closing_balance).toBe(1204.55);
+  });
 });
 
 describe("resolveDirection", () => {
