@@ -58,6 +58,8 @@ vi.mock("next/navigation", () => ({
   redirect: vi.fn((url: string) => { throw new Error(`REDIRECT:${url}`); }),
 }));
 
+vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
+
 describe("extractStatement", () => {
   it("uploads a PDF, extracts, and writes transactions", async () => {
     const { db } = await import("@/lib/db/client");
@@ -72,13 +74,13 @@ describe("extractStatement", () => {
       { userId: "u1", name: "Uncategorized", isSystem: true },
     ]);
 
-    const { extractStatement } = await import("@/lib/actions/extract-statement");
+    const { ingestStatement } = await import("@/lib/actions/ingest-statement");
 
     const fd = new FormData();
     fd.append("financialAccountId", acc.id);
     fd.append("file", new File([Buffer.from("%PDF-1.4 fake")], "april.pdf", { type: "application/pdf" }));
 
-    const res = await extractStatement(fd);
+    const res = await ingestStatement(fd);
     expect(res.duplicate).toBe(false);
     expect(res.statementId).toMatch(/[0-9a-f-]{36}/);
 

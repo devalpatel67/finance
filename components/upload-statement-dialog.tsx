@@ -13,7 +13,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { AddAccountDialog } from "@/components/add-account-dialog";
-import { extractStatement } from "@/lib/actions/extract-statement";
+import { ingestStatement } from "@/lib/actions/ingest-statement";
 
 type Account = { id: string; name: string; institution: string | null };
 
@@ -41,7 +41,7 @@ export function UploadStatementDialog({
             start(async () => {
               fd.set("financialAccountId", accountId);
               try {
-                const { statementId, duplicate } = await extractStatement(fd);
+                const { statementId, duplicate } = await ingestStatement(fd);
                 setOpen(false);
                 toast.success(duplicate ? "Already uploaded — opening it" : "Statement extracted");
                 router.push(`/statements/${statementId}${duplicate ? "?duplicate=1" : ""}`);

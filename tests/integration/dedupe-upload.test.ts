@@ -52,15 +52,17 @@ vi.mock("next/navigation", () => ({
   redirect: vi.fn((url: string) => { throw new Error(`REDIRECT:${url}`); }),
 }));
 
+vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
+
 async function upload(accountId: string, bytes: string) {
-  const { extractStatement } = await import("@/lib/actions/extract-statement");
+  const { ingestStatement } = await import("@/lib/actions/ingest-statement");
   const fd = new FormData();
   fd.append("financialAccountId", accountId);
   fd.append("file", new File([Buffer.from(bytes)], "stmt.pdf", { type: "application/pdf" }));
-  return extractStatement(fd);
+  return ingestStatement(fd);
 }
 
-describe("extractStatement content-hash dedup", () => {
+describe("ingestStatement content-hash dedup", () => {
   it("re-uploading identical bytes reuses the statement instead of duplicating", async () => {
     const { db } = await import("@/lib/db/client");
     const { users, financialAccounts, categories, statements, transactions } = await import("@/lib/db/schema");

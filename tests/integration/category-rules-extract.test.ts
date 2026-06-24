@@ -52,6 +52,8 @@ vi.mock("next/navigation", () => ({
   redirect: vi.fn((url: string) => { throw new Error(`REDIRECT:${url}`); }),
 }));
 
+vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
+
 describe("extract applies category rules", () => {
   it("a matching rule sets category + source 'rule'; non-match stays 'suggested'", async () => {
     const { db } = await import("@/lib/db/client");
@@ -67,11 +69,11 @@ describe("extract applies category rules", () => {
     ]);
     await db.insert(categoryRules).values({ userId: "u1", keyword: "starbucks", categoryId: dining.id });
 
-    const { extractStatement } = await import("@/lib/actions/extract-statement");
+    const { ingestStatement } = await import("@/lib/actions/ingest-statement");
     const fd = new FormData();
     fd.append("financialAccountId", acc.id);
     fd.append("file", new File([Buffer.from("%PDF-1.4 x")], "s.pdf", { type: "application/pdf" }));
-    await extractStatement(fd);
+    await ingestStatement(fd);
 
     const rows = await db.select().from(transactions);
     const sbux = rows.find((r) => r.description.includes("STARBUCKS"))!;
