@@ -27,9 +27,14 @@ export function resolveAccount({
   const wantInst = normalizeInstitution(extracted.institution);
   const wantLast4 = extracted.last4;
 
-  const matches = accounts.filter(
-    (a) => a.institution && a.last4 === wantLast4 && normalizeInstitution(a.institution) === wantInst,
-  );
+  const matches = accounts.filter((a) => {
+    if (!a.institution || a.last4 !== wantLast4) return false;
+    const inst = normalizeInstitution(a.institution);
+    if (inst === wantInst) return true;
+    // Tolerate label variance like "RBC" vs "RBC Royal Bank". Guard against
+    // empty normalized strings, which would otherwise match everything.
+    return Boolean(inst) && Boolean(wantInst) && (inst.includes(wantInst) || wantInst.includes(inst));
+  });
   if (matches.length === 0) return { kind: "none" };
   if (matches.length === 1) return { kind: "matched", account: matches[0] };
 
