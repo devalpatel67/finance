@@ -15,6 +15,13 @@
       "when": 1780001919743,
       "tag": "0001_vengeful_fat_cobra",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1782265775159,
+      "tag": "0002_wise_mister_sinister",
+      "breakpoints": true
     }
   ]
 }

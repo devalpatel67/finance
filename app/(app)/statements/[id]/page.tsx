@@ -18,10 +18,13 @@ import { ReprocessControls } from "./reprocess-controls";
 
 export default async function StatementDetail({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ duplicate?: string }>;
 }) {
   const { id } = await params;
+  const { duplicate } = await searchParams;
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) notFound();
   const sdb = scopedDb(session.user.id);
@@ -80,6 +83,14 @@ export default async function StatementDetail({
           <ReprocessControls statementId={s.id} currentModel={s.modelUsed ?? ""} />
         </div>
       </header>
+
+      {duplicate && (
+        <p className="rounded border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
+          You already uploaded this statement, so we opened the existing one
+          instead of importing it again. To re-extract it with a different model,
+          use Reprocess above.
+        </p>
+      )}
 
       {s.extractionStatus === "failed" && s.extractionError && (
         <p className="rounded border border-destructive/40 bg-destructive/10 p-3 text-sm">

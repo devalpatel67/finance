@@ -1,6 +1,6 @@
 import { relations } from "drizzle-orm";
 import {
-  pgTable, text, timestamp, boolean, uuid, date, numeric, jsonb, uniqueIndex,
+  pgTable, text, timestamp, boolean, uuid, date, numeric, jsonb, uniqueIndex, index,
 } from "drizzle-orm/pg-core";
 
 // ─── Better Auth tables ───────────────────────────────────────────────
@@ -67,21 +67,28 @@ export const financialAccounts = pgTable("financial_accounts", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-export const statements = pgTable("statements", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  financialAccountId: uuid("financial_account_id").notNull().references(() => financialAccounts.id, { onDelete: "cascade" }),
-  periodStart: date("period_start"),
-  periodEnd: date("period_end"),
-  sourceFilename: text("source_filename").notNull(),
-  storageBucket: text("storage_bucket").notNull(),
-  storageKey: text("storage_key").notNull(),
-  modelUsed: text("model_used"),
-  extractionStatus: text("extraction_status", { enum: ["pending", "succeeded", "failed"] }).notNull().default("pending"),
-  extractionError: text("extraction_error"),
-  uploadedAt: timestamp("uploaded_at").notNull().defaultNow(),
-  extractedAt: timestamp("extracted_at"),
-});
+export const statements = pgTable(
+  "statements",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    financialAccountId: uuid("financial_account_id").notNull().references(() => financialAccounts.id, { onDelete: "cascade" }),
+    periodStart: date("period_start"),
+    periodEnd: date("period_end"),
+    sourceFilename: text("source_filename").notNull(),
+    storageBucket: text("storage_bucket").notNull(),
+    storageKey: text("storage_key").notNull(),
+    contentHash: text("content_hash"),
+    modelUsed: text("model_used"),
+    extractionStatus: text("extraction_status", { enum: ["pending", "succeeded", "failed"] }).notNull().default("pending"),
+    extractionError: text("extraction_error"),
+    uploadedAt: timestamp("uploaded_at").notNull().defaultNow(),
+    extractedAt: timestamp("extracted_at"),
+  },
+  (t) => ({
+    userContentHashIdx: index("statements_user_content_hash").on(t.userId, t.contentHash),
+  }),
+);
 
 export const categories = pgTable("categories", {
   id: uuid("id").primaryKey().defaultRandom(),

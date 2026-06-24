@@ -10,6 +10,7 @@ import { auth } from "@/lib/auth";
 import { db } from "@/lib/db/client";
 import { categories, financialAccounts, statements, transactions, users } from "@/lib/db/schema";
 import { putStatementPdf } from "@/lib/storage/minio";
+import { sha256Hex } from "@/lib/statements/hash";
 import { extractFromPdf, resolveDirection } from "@/lib/llm/extraction";
 import { pickCategoryId } from "@/lib/categories/resolve";
 import { ALLOWED_MODEL_IDS, DEFAULT_MODEL, type ModelId } from "@/lib/llm/models";
@@ -43,6 +44,25 @@ export async function extractStatement(formData: FormData) {
     .limit(1);
   if (!account) throw new Error("Account not found");
 
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const contentHash = sha256Hex(buffer);
+
+  // Identical PDF already ingested? Don't re-run extraction (cost) or create a
+  // duplicate statement — send the user to the existing one. To re-extract with
+  // a different model they use the Reprocess control there.
+  const [dup] = await db
+    .select({ id: statements.id })
+    .from(statements)
+    .where(
+      and(
+        eq(statements.userId, userId),
+        eq(statements.contentHash, contentHash),
+        eq(statements.extractionStatus, "succeeded"),
+      ),
+    )
+    .limit(1);
+  if (dup) redirect(`/statements/${dup.id}?duplicate=1`);
+
   const [me] = await db
     .select({ preferredModel: users.preferredModel })
     .from(users)
@@ -60,11 +80,10 @@ export async function extractStatement(formData: FormData) {
     sourceFilename: file.name,
     storageBucket: "",
     storageKey: "",
+    contentHash,
     modelUsed: model,
     extractionStatus: "pending",
   });
-
-  const buffer = Buffer.from(await file.arrayBuffer());
 
   let stored: { bucket: string; key: string };
   try {
