@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { toast } from "sonner";
 
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -37,7 +38,19 @@ export function CategoryPicker({
         onValueChange={(v) => {
           start(() => updateTransactionCategory({ transactionId, categoryId: v || null }));
           const cat = categories.find((c) => c.id === v);
-          if (v && cat) setPrompt({ keyword: suggestKeyword(description), categoryId: v, categoryName: cat.name });
+          if (v && cat) {
+            // Offer rule creation via a toast action rather than opening the dialog
+            // here: opening a Radix Dialog inside the Select's onValueChange races
+            // with the Select closing and dismisses the dialog instantly. The toast
+            // action is a clean later click, so the dialog opens reliably.
+            toast.success(`Categorized as ${cat.name}`, {
+              action: {
+                label: "Make a rule",
+                onClick: () =>
+                  setPrompt({ keyword: suggestKeyword(description), categoryId: v, categoryName: cat.name }),
+              },
+            });
+          }
         }}
       >
         <SelectTrigger className="h-8 text-xs">
