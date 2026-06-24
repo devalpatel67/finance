@@ -28,7 +28,10 @@ export default async function RulesPage() {
         Transactions whose description contains a keyword are categorized automatically.
         Your manual category edits are always kept.
       </p>
-      <RulesManager rules={rows} />
+      <RulesManager
+        rules={rows}
+        categories={cats.map((c) => ({ id: c.id, name: c.name, color: c.color }))}
+      />
     </div>
   );
 }
