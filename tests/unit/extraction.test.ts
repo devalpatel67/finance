@@ -110,6 +110,39 @@ describe("ExtractionResult schema", () => {
   });
 });
 
+describe("ExtractionResult account_type", () => {
+  it("accepts a valid account_type", () => {
+    const parsed = ExtractionResult.parse({
+      account_summary: {
+        period_start: "2026-04-01", period_end: "2026-04-30",
+        currency: "USD", account_type: "credit",
+      },
+      transactions: [],
+    });
+    expect(parsed.account_summary.account_type).toBe("credit");
+  });
+
+  it("allows account_type to be absent", () => {
+    const parsed = ExtractionResult.parse({
+      account_summary: { period_start: "2026-04-01", period_end: "2026-04-30", currency: "USD" },
+      transactions: [],
+    });
+    expect(parsed.account_summary.account_type).toBeUndefined();
+  });
+
+  it("rejects an invalid account_type", () => {
+    expect(() =>
+      ExtractionResult.parse({
+        account_summary: {
+          period_start: "2026-04-01", period_end: "2026-04-30",
+          currency: "USD", account_type: "loan",
+        },
+        transactions: [],
+      }),
+    ).toThrow();
+  });
+});
+
 describe("resolveDirection", () => {
   it("returns the provided direction when present (outflow)", () => {
     expect(resolveDirection({ amount: -10, direction: "outflow" })).toBe("outflow");
