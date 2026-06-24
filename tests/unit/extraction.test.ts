@@ -1,5 +1,19 @@
 import { describe, expect, it } from "vitest";
-import { ExtractionResult, resolveDirection } from "@/lib/llm/extraction";
+import { buildSystemPrompt, ExtractionResult, resolveDirection } from "@/lib/llm/extraction";
+
+describe("buildSystemPrompt", () => {
+  it("lists the user's categories when provided", () => {
+    const p = buildSystemPrompt(["Dining", "My Custom Cat"]);
+    expect(p).toContain("Dining");
+    expect(p).toContain("My Custom Cat");
+    expect(p.toLowerCase()).toContain("choose");
+  });
+
+  it("omits the category-list instruction when none are provided", () => {
+    const p = buildSystemPrompt([]);
+    expect(p).not.toContain("Choose suggested_category from");
+  });
+});
 
 describe("ExtractionResult schema", () => {
   it("parses a valid payload", () => {

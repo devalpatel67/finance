@@ -1,15 +1,16 @@
 "use server";
 
-import { and, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db/client";
-import { categories, financialAccounts, statements, transactions } from "@/lib/db/schema";
+import { categories, categoryRules, financialAccounts, statements, transactions } from "@/lib/db/schema";
 import { getStatementPdf } from "@/lib/storage/minio";
 import { extractFromPdf, resolveDirection } from "@/lib/llm/extraction";
-import { pickCategoryId } from "@/lib/categories/resolve";
+import { resolveCategory } from "@/lib/categories/resolve";
+import { normalizeDescription } from "@/lib/categories/normalize";
 import { ALLOWED_MODEL_IDS, type ModelId } from "@/lib/llm/models";
 import { reconcile } from "@/lib/statements/reconcile";
 
@@ -27,12 +28,18 @@ export async function reprocessStatement(statementId: string, model: string) {
   if (!s.storageKey) throw new Error("Statement has no stored PDF");
 
   const pdf = await getStatementPdf({ bucket: s.storageBucket, key: s.storageKey });
-  const result = await extractFromPdf({ pdf, model: model as ModelId, filename: s.sourceFilename });
 
   const cats = await db
     .select({ id: categories.id, name: categories.name })
     .from(categories)
     .where(eq(categories.userId, session.user.id));
+  const rules = await db
+    .select({ keyword: categoryRules.keyword, categoryId: categoryRules.categoryId })
+    .from(categoryRules)
+    .where(eq(categoryRules.userId, session.user.id))
+    .orderBy(desc(categoryRules.createdAt));
+
+  const result = await extractFromPdf({ pdf, model: model as ModelId, filename: s.sourceFilename, categoryNames: cats.map((c) => c.name) });
 
   const [acct] = await db
     .select({ kind: financialAccounts.kind })
@@ -46,6 +53,16 @@ export async function reprocessStatement(statementId: string, model: string) {
     closing: result.account_summary.closing_balance ?? null,
     amounts: result.transactions.map((t) => t.amount),
   });
+
+  const manualRows = await db
+    .select({ description: transactions.description, amount: transactions.amount, postedAt: transactions.postedAt, categoryId: transactions.categoryId })
+    .from(transactions)
+    .where(and(eq(transactions.statementId, s.id), eq(transactions.categorySource, "manual")));
+  const manualKey = (description: string, amount: string, postedAt: string) =>
+    `${normalizeDescription(description)}|${amount}|${postedAt}`;
+  const manualByKey = new Map(
+    manualRows.map((r) => [manualKey(r.description, r.amount, r.postedAt), r.categoryId]),
+  );
 
   await db.transaction(async (tx) => {
     await tx.delete(transactions).where(eq(transactions.statementId, s.id));
@@ -76,7 +93,20 @@ export async function reprocessStatement(statementId: string, model: string) {
           amount: t.amount.toFixed(2),
           direction: resolveDirection(t),
           currency: result.account_summary.currency,
-          categoryId: pickCategoryId(cats, t.suggested_category),
+          ...(() => {
+              const key = manualKey(t.description, t.amount.toFixed(2), t.posted_at);
+              const manualCat = manualByKey.get(key);
+              if (manualCat !== undefined) {
+                return { categoryId: manualCat, categorySource: "manual" as const };
+              }
+              const r = resolveCategory({
+                description: t.description,
+                suggestedLabel: t.suggested_category,
+                rules,
+                categories: cats,
+              });
+              return { categoryId: r.categoryId, categorySource: r.source };
+            })(),
           rawExtraction: t,
         })),
       );

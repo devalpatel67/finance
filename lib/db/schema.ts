@@ -119,6 +119,9 @@ export const transactions = pgTable(
     direction: text("direction", { enum: ["outflow", "inflow", "transfer"] }).notNull().default("outflow"),
     currency: text("currency").notNull(),
     categoryId: uuid("category_id").references(() => categories.id, { onDelete: "set null" }),
+    categorySource: text("category_source", {
+      enum: ["suggested", "rule", "manual"],
+    }).notNull().default("suggested"),
     rawExtraction: jsonb("raw_extraction"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
   },
@@ -137,6 +140,20 @@ export const budgets = pgTable("budgets", {
   amount: numeric("amount", { precision: 14, scale: 2 }).notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
+
+export const categoryRules = pgTable(
+  "category_rules",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    keyword: text("keyword").notNull(),
+    categoryId: uuid("category_id").notNull().references(() => categories.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => ({
+    userKeywordIdx: uniqueIndex("category_rules_user_keyword").on(t.userId, t.keyword),
+  }),
+);
 
 // ─── Relations ───────────────────────────────────────────────────────
 

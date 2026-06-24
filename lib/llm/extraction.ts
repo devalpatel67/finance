@@ -34,7 +34,7 @@ export function resolveDirection(t: { amount: number; direction?: Direction }): 
   return t.direction ?? (t.amount < 0 ? "outflow" : "inflow");
 }
 
-const SYSTEM_PROMPT = `You extract financial transactions from a bank or credit-card statement PDF.
+const BASE_SYSTEM_PROMPT = `You extract financial transactions from a bank or credit-card statement PDF.
 
 Rules:
 - Return JSON matching the provided schema exactly.
@@ -44,6 +44,14 @@ Rules:
 - Set \`direction\` to \`outflow\` for money leaving the account (purchases, fees, ATM withdrawals), \`inflow\` for money entering (deposits, refunds, paychecks), or \`transfer\` for movements between the user's own accounts (e.g. credit card payments, internal transfers). When in doubt, infer from the sign of amount.
 - Report the statement's stated opening/previous balance as \`opening_balance\` and the closing/new balance as \`closing_balance\`, as printed. For credit-card statements these are the previous balance and the new balance owed. Omit them only if the statement does not show them.
 - Include every transaction; do not summarize or skip rows.`;
+
+export function buildSystemPrompt(categoryNames: string[]): string {
+  if (categoryNames.length === 0) return BASE_SYSTEM_PROMPT;
+  return (
+    BASE_SYSTEM_PROMPT +
+    `\n- Choose suggested_category from this list when one fits: ${categoryNames.join(", ")}. If none fit, use a short free-text label.`
+  );
+}
 
 const JSON_SCHEMA = {
   name: "ExtractionResult",
@@ -90,6 +98,7 @@ export async function extractFromPdf(opts: {
   pdf: Buffer;
   model: ModelId;
   filename: string;
+  categoryNames: string[];
 }): Promise<ExtractionResult> {
   assertAllowedModel(opts.model);
 
@@ -99,7 +108,7 @@ export async function extractFromPdf(opts: {
     model: opts.model,
     response_format: { type: "json_schema", json_schema: JSON_SCHEMA },
     messages: [
-      { role: "system", content: SYSTEM_PROMPT },
+      { role: "system", content: buildSystemPrompt(opts.categoryNames) },
       {
         role: "user",
         content: [
