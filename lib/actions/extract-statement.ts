@@ -14,6 +14,7 @@ import { sha256Hex } from "@/lib/statements/hash";
 import { extractFromPdf, resolveDirection } from "@/lib/llm/extraction";
 import { pickCategoryId } from "@/lib/categories/resolve";
 import { ALLOWED_MODEL_IDS, DEFAULT_MODEL, type ModelId } from "@/lib/llm/models";
+import { reconcile } from "@/lib/statements/reconcile";
 
 const InputSchema = z.object({
   financialAccountId: z.string().uuid(),
@@ -122,12 +123,23 @@ export async function extractStatement(formData: FormData) {
     .from(categories)
     .where(eq(categories.userId, userId));
 
+  const rec = reconcile({
+    kind: account.kind,
+    opening: result.account_summary.opening_balance ?? null,
+    closing: result.account_summary.closing_balance ?? null,
+    amounts: result.transactions.map((t) => t.amount),
+  });
+
   await db.transaction(async (tx) => {
     await tx
       .update(statements)
       .set({
         periodStart: result.account_summary.period_start,
         periodEnd: result.account_summary.period_end,
+        openingBalance: result.account_summary.opening_balance?.toFixed(2) ?? null,
+        closingBalance: result.account_summary.closing_balance?.toFixed(2) ?? null,
+        reconciliationStatus: rec.status,
+        reconciliationDelta: rec.delta == null ? null : rec.delta.toFixed(2),
         extractionStatus: "succeeded",
         extractedAt: new Date(),
       })
@@ -150,7 +162,7 @@ export async function extractStatement(formData: FormData) {
             rawExtraction: t,
           })),
         )
-        .onConflictDoNothing({
+        .onConflictDoUpdate({
           target: [
             transactions.userId,
             transactions.financialAccountId,
@@ -158,6 +170,7 @@ export async function extractStatement(formData: FormData) {
             transactions.amount,
             transactions.description,
           ],
+          set: { statementId },
         });
     }
   });
