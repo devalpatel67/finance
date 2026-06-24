@@ -9,6 +9,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
+import { formatCurrency } from "@/lib/format/currency";
 import { CategoryPicker } from "./category-picker";
 import { DirectionBadge } from "./direction-badge";
 
@@ -24,12 +25,6 @@ type Row = {
 };
 
 type Category = { id: string; name: string; color: string };
-
-const fmt = (amount: string, currency: string) =>
-  new Intl.NumberFormat(undefined, {
-    style: "currency",
-    currency,
-  }).format(Math.abs(Number(amount)));
 
 export function TransactionsTable({
   rows,
@@ -85,7 +80,7 @@ export function TransactionsTable({
               <DirectionBadge direction={r.direction} />
             </TableCell>
             <TableCell className="text-right tabular-nums text-foreground">
-              {fmt(r.amount, r.currency)}
+              {formatCurrency(r.amount, r.currency)}
             </TableCell>
           </TableRow>
         ))}
