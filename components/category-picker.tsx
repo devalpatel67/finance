@@ -53,7 +53,7 @@ export function CategoryPicker({
           }
         }}
       >
-        <SelectTrigger className="h-8 text-xs">
+        <SelectTrigger className="h-7 w-fit gap-1.5 border-0 bg-transparent px-2 text-xs shadow-none hover:bg-muted focus-visible:ring-0 focus-visible:bg-muted data-[state=open]:bg-muted [&>svg]:size-3 [&>svg]:opacity-40 hover:[&>svg]:opacity-70 data-[state=open]:[&>svg]:opacity-70">
           <SelectValue placeholder="Uncategorized" />
         </SelectTrigger>
         <SelectContent>
