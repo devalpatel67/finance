@@ -66,9 +66,7 @@ async function upload(accountId: string, bytes: string) {
   const fd = new FormData();
   fd.append("financialAccountId", accountId);
   fd.append("file", new File([Buffer.from(bytes)], "s.pdf", { type: "application/pdf" }));
-  try { await extractStatement(fd); } catch (e) {
-    if (!/REDIRECT:/.test((e as Error).message)) throw e;
-  }
+  await extractStatement(fd);
 }
 
 describe("reconciliation on extract", () => {

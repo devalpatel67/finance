@@ -78,7 +78,9 @@ describe("extractStatement", () => {
     fd.append("financialAccountId", acc.id);
     fd.append("file", new File([Buffer.from("%PDF-1.4 fake")], "april.pdf", { type: "application/pdf" }));
 
-    await expect(extractStatement(fd)).rejects.toThrow(/REDIRECT:\/statements\//);
+    const res = await extractStatement(fd);
+    expect(res.duplicate).toBe(false);
+    expect(res.statementId).toMatch(/[0-9a-f-]{36}/);
 
     const { transactions, statements } = await import("@/lib/db/schema");
     const rows = await db.select().from(transactions);

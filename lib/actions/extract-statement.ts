@@ -2,7 +2,6 @@
 
 import { randomUUID } from "node:crypto";
 import { headers } from "next/headers";
-import { redirect } from "next/navigation";
 import { and, desc, eq } from "drizzle-orm";
 import { z } from "zod";
 
@@ -23,7 +22,9 @@ const InputSchema = z.object({
 
 const MAX_BYTES = 10 * 1024 * 1024;
 
-export async function extractStatement(formData: FormData) {
+export async function extractStatement(
+  formData: FormData,
+): Promise<{ statementId: string; duplicate: boolean }> {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) throw new Error("Not signed in");
   const userId = session.user.id;
@@ -62,7 +63,7 @@ export async function extractStatement(formData: FormData) {
       ),
     )
     .limit(1);
-  if (dup) redirect(`/statements/${dup.id}?duplicate=1`);
+  if (dup) return { statementId: dup.id, duplicate: true };
 
   const [me] = await db
     .select({ preferredModel: users.preferredModel })
@@ -187,5 +188,5 @@ export async function extractStatement(formData: FormData) {
     }
   });
 
-  redirect(`/statements/${statementId}`);
+  return { statementId, duplicate: false };
 }
