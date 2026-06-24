@@ -74,6 +74,7 @@ export function TransactionsTable({
                 transactionId={r.id}
                 categoryId={r.categoryId}
                 categories={categories}
+                description={r.description}
               />
             </TableCell>
             <TableCell>
