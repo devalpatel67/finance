@@ -52,7 +52,7 @@ export async function createCategoryRule(input: { keyword: string; categoryId: s
     await db
       .update(transactions)
       .set({ categoryId: parsed.categoryId, categorySource: "rule" })
-      .where(inArray(transactions.id, ids));
+      .where(and(eq(transactions.userId, userId), inArray(transactions.id, ids)));
   }
 
   revalidatePath("/transactions");
