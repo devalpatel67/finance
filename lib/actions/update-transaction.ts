@@ -24,7 +24,7 @@ export async function updateTransactionCategory(input: {
   const parsed = Input.parse(input);
   await db
     .update(transactions)
-    .set({ categoryId: parsed.categoryId })
+    .set({ categoryId: parsed.categoryId, categorySource: "manual" })
     .where(
       and(
         eq(transactions.id, parsed.transactionId),
