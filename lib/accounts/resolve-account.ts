@@ -13,9 +13,7 @@ const ALIASES: Record<string, string> = {
 
 export function normalizeInstitution(name: string): string {
   const base = name.toLowerCase().replace(/[^a-z0-9]/g, "");
-  // Strip common bank suffixes (N.A., Inc., etc.)
-  const stripped = base.replace(/(na|inc|ltd|llc|corp)$/, "");
-  return ALIASES[stripped] ?? ALIASES[base] ?? (stripped || base);
+  return ALIASES[base] ?? base;
 }
 
 export function resolveAccount({

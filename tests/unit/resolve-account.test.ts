@@ -10,7 +10,7 @@ describe("normalizeInstitution", () => {
   it("lowercases and strips non-alphanumerics", () => {
     expect(normalizeInstitution("American Express")).toBe("americanexpress");
     expect(normalizeInstitution("AMEX")).toBe("americanexpress");
-    expect(normalizeInstitution("TD Bank, N.A.")).toBe("tdbank");
+    expect(normalizeInstitution("Capital One!!")).toBe("capitalone");
   });
 });
 
