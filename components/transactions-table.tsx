@@ -11,7 +11,6 @@ import {
 
 import { formatCurrency } from "@/lib/format/currency";
 import { CategoryPicker } from "./category-picker";
-import { DirectionBadge } from "./direction-badge";
 
 type Row = {
   id: string;
@@ -25,6 +24,36 @@ type Row = {
 };
 
 type Category = { id: string; name: string; color: string };
+
+const headClass =
+  "h-9 text-[11px] font-medium uppercase tracking-wider text-muted-foreground";
+
+// Direction lives on the amount, not in a column: outflows are the quiet default
+// (− neutral), inflows read positive (+ emerald), transfers are muted (⇄). The
+// sign/glyph carries meaning so it never depends on color alone.
+function Amount({
+  amount,
+  currency,
+  direction,
+}: {
+  amount: string;
+  currency: string;
+  direction: Row["direction"];
+}) {
+  const value = formatCurrency(amount, currency);
+  if (direction === "inflow") {
+    return <span className="tabular-nums font-medium text-emerald-600">+{value}</span>;
+  }
+  if (direction === "transfer") {
+    return (
+      <span className="tabular-nums font-medium text-muted-foreground" title="Transfer">
+        <span aria-hidden className="mr-1 text-xs">⇄</span>
+        {value}
+      </span>
+    );
+  }
+  return <span className="tabular-nums font-medium text-foreground/80">−{value}</span>;
+}
 
 export function TransactionsTable({
   rows,
@@ -41,34 +70,35 @@ export function TransactionsTable({
   return (
     <Table>
       <TableHeader>
-        <TableRow>
-          <TableHead className="w-[110px]">Date</TableHead>
-          {showAccount && <TableHead className="w-[180px]">Account</TableHead>}
-          <TableHead>Description</TableHead>
-          <TableHead className="w-[180px]">Category</TableHead>
-          <TableHead className="w-[140px]">Direction</TableHead>
-          <TableHead className="w-[120px] text-right">Amount</TableHead>
+        <TableRow className="hover:bg-transparent">
+          <TableHead className={`${headClass} w-[104px]`}>Date</TableHead>
+          {showAccount && <TableHead className={`${headClass} w-[210px]`}>Account</TableHead>}
+          <TableHead className={headClass}>Description</TableHead>
+          <TableHead className={`${headClass} w-[190px]`}>Category</TableHead>
+          <TableHead className={`${headClass} w-[140px] text-right`}>Amount</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
         {rows.map((r) => (
           <TableRow key={r.id}>
-            <TableCell>{r.postedAt}</TableCell>
+            <TableCell className="whitespace-nowrap text-sm tabular-nums text-muted-foreground">
+              {r.postedAt}
+            </TableCell>
             {showAccount && (
-              <TableCell className="whitespace-nowrap text-sm">
+              <TableCell className="whitespace-nowrap text-sm text-muted-foreground">
                 {r.account ? (
                   <>
                     {r.account.name}
-                    {r.account.last4 && (
-                      <span className="ml-1 text-muted-foreground">··{r.account.last4}</span>
-                    )}
+                    {r.account.last4 && <span className="ml-1 opacity-60">··{r.account.last4}</span>}
                   </>
                 ) : (
-                  <span className="text-muted-foreground">—</span>
+                  <span>—</span>
                 )}
               </TableCell>
             )}
-            <TableCell>{r.description}</TableCell>
+            <TableCell className="font-medium text-foreground/90" title={r.description}>
+              {r.description}
+            </TableCell>
             <TableCell>
               <CategoryPicker
                 transactionId={r.id}
@@ -77,11 +107,8 @@ export function TransactionsTable({
                 description={r.description}
               />
             </TableCell>
-            <TableCell>
-              <DirectionBadge direction={r.direction} />
-            </TableCell>
-            <TableCell className="text-right tabular-nums text-foreground">
-              {formatCurrency(r.amount, r.currency)}
+            <TableCell className="text-right">
+              <Amount amount={r.amount} currency={r.currency} direction={r.direction} />
             </TableCell>
           </TableRow>
         ))}
