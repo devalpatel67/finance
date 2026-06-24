@@ -83,15 +83,18 @@ export function BulkUploadDialog({
     router.refresh();
   }
 
-  function reassign(it: Item, accountId: string) {
-    if (!it.result) return;
+  function reassign(itemId: string, statementId: string, accountId: string) {
     const acct = accounts.find((a) => a.id === accountId);
     startReassign(async () => {
       try {
-        await reassignStatementAccount({ statementId: it.result!.statementId, accountId });
-        patch(it.id, {
-          result: { ...it.result!, account: { id: accountId, name: acct?.name ?? "", autoCreated: false }, needsReview: false },
-        });
+        await reassignStatementAccount({ statementId, accountId });
+        setItems((prev) =>
+          prev.map((x) =>
+            x.id === itemId && x.result
+              ? { ...x, result: { ...x.result, account: { id: accountId, name: acct?.name ?? "", autoCreated: false }, needsReview: false } }
+              : x,
+          ),
+        );
         toast.success(`Moved to ${acct?.name ?? "account"}`);
         router.refresh();
       } catch (e) {
@@ -132,7 +135,7 @@ export function BulkUploadDialog({
                     {it.error ? `${labels[it.status]}: ${it.error}` : labels[it.status]}
                   </span>
                   {(it.status === "done" || it.status === "duplicate") && it.result && (
-                    <Select value={it.result.account.id} onValueChange={(v) => reassign(it, v)}>
+                    <Select value={it.result.account.id} onValueChange={(v) => reassign(it.id, it.result!.statementId, v)}>
                       <SelectTrigger className="h-7 w-44 shrink-0 text-xs">
                         <SelectValue />
                       </SelectTrigger>
