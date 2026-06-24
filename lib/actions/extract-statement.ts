@@ -162,7 +162,7 @@ export async function extractStatement(formData: FormData) {
             rawExtraction: t,
           })),
         )
-        .onConflictDoUpdate({
+        .onConflictDoNothing({
           target: [
             transactions.userId,
             transactions.financialAccountId,
@@ -170,7 +170,6 @@ export async function extractStatement(formData: FormData) {
             transactions.amount,
             transactions.description,
           ],
-          set: { statementId },
         });
     }
   });
