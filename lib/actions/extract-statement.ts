@@ -104,9 +104,19 @@ export async function extractStatement(formData: FormData) {
     .set({ storageBucket: stored.bucket, storageKey: stored.key })
     .where(eq(statements.id, statementId));
 
+  const cats = await db
+    .select({ id: categories.id, name: categories.name })
+    .from(categories)
+    .where(eq(categories.userId, userId));
+  const rules = await db
+    .select({ keyword: categoryRules.keyword, categoryId: categoryRules.categoryId })
+    .from(categoryRules)
+    .where(eq(categoryRules.userId, userId))
+    .orderBy(desc(categoryRules.createdAt));
+
   let result;
   try {
-    result = await extractFromPdf({ pdf: buffer, model, filename: file.name });
+    result = await extractFromPdf({ pdf: buffer, model, filename: file.name, categoryNames: cats.map((c) => c.name) });
   } catch (err) {
     await db
       .update(statements)
@@ -117,16 +127,6 @@ export async function extractStatement(formData: FormData) {
       .where(eq(statements.id, statementId));
     throw err;
   }
-
-  const cats = await db
-    .select({ id: categories.id, name: categories.name })
-    .from(categories)
-    .where(eq(categories.userId, userId));
-  const rules = await db
-    .select({ keyword: categoryRules.keyword, categoryId: categoryRules.categoryId })
-    .from(categoryRules)
-    .where(eq(categoryRules.userId, userId))
-    .orderBy(desc(categoryRules.createdAt));
 
   const rec = reconcile({
     kind: account.kind,

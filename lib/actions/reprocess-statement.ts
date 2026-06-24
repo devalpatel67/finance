@@ -27,7 +27,6 @@ export async function reprocessStatement(statementId: string, model: string) {
   if (!s.storageKey) throw new Error("Statement has no stored PDF");
 
   const pdf = await getStatementPdf({ bucket: s.storageBucket, key: s.storageKey });
-  const result = await extractFromPdf({ pdf, model: model as ModelId, filename: s.sourceFilename });
 
   const cats = await db
     .select({ id: categories.id, name: categories.name })
@@ -38,6 +37,8 @@ export async function reprocessStatement(statementId: string, model: string) {
     .from(categoryRules)
     .where(eq(categoryRules.userId, session.user.id))
     .orderBy(desc(categoryRules.createdAt));
+
+  const result = await extractFromPdf({ pdf, model: model as ModelId, filename: s.sourceFilename, categoryNames: cats.map((c) => c.name) });
 
   const [acct] = await db
     .select({ kind: financialAccounts.kind })
