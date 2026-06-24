@@ -11,6 +11,8 @@ export const ExtractionResult = z.object({
     period_start: isoDate,
     period_end: isoDate,
     currency: z.string().length(3),
+    opening_balance: z.number().finite().optional(),
+    closing_balance: z.number().finite().optional(),
   }),
   transactions: z.array(
     z.object({
@@ -40,6 +42,7 @@ Rules:
 - Use ISO 8601 dates (YYYY-MM-DD).
 - suggested_category must be a short label like "Groceries", "Dining", "Transport", "Utilities", "Bills", "Subscriptions", "Shopping", "Entertainment", "Health", "Travel", "Income", "Transfers", "Fees", "Other".
 - Set \`direction\` to \`outflow\` for money leaving the account (purchases, fees, ATM withdrawals), \`inflow\` for money entering (deposits, refunds, paychecks), or \`transfer\` for movements between the user's own accounts (e.g. credit card payments, internal transfers). When in doubt, infer from the sign of amount.
+- Report the statement's stated opening/previous balance as \`opening_balance\` and the closing/new balance as \`closing_balance\`, as printed. For credit-card statements these are the previous balance and the new balance owed. Omit them only if the statement does not show them.
 - Include every transaction; do not summarize or skip rows.`;
 
 const JSON_SCHEMA = {
@@ -60,6 +63,8 @@ const JSON_SCHEMA = {
           period_start: { type: "string" },
           period_end: { type: "string" },
           currency: { type: "string" },
+          opening_balance: { type: "number" },
+          closing_balance: { type: "number" },
         },
       },
       transactions: {
