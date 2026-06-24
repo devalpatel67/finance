@@ -60,7 +60,7 @@ vi.mock("next/navigation", () => ({
 
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 
-describe("extractStatement", () => {
+describe("ingestStatement", () => {
   it("uploads a PDF, extracts, and writes transactions", async () => {
     const { db } = await import("@/lib/db/client");
     const { users, financialAccounts, categories } = await import("@/lib/db/schema");

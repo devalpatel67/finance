@@ -109,9 +109,12 @@ describe("ingestStatement account detection", () => {
   it("short-circuits a duplicate PDF without re-extracting", async () => {
     await seed();
     const { ingestStatement } = await import("@/lib/actions/ingest-statement");
+    const { extractFromPdf } = await import("@/lib/llm/extraction");
     const first = await ingestStatement(pdf("dup.pdf"));
+    const callsAfterFirst = (extractFromPdf as unknown as { mock: { calls: unknown[] } }).mock.calls.length;
     const second = await ingestStatement(pdf("dup.pdf"));
     expect(second.duplicate).toBe(true);
     expect(second.statementId).toBe(first.statementId);
+    expect((extractFromPdf as unknown as { mock: { calls: unknown[] } }).mock.calls.length).toBe(callsAfterFirst);
   });
 });
