@@ -7,7 +7,7 @@ import {
 } from "@/components/ui/sidebar";
 import { signOut } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
-import { UploadStatementDialog } from "@/components/upload-statement-dialog";
+import { BulkUploadDialog } from "@/components/bulk-upload-dialog";
 
 const nav = [
   { href: "/dashboard", label: "Dashboard" },
@@ -21,18 +21,16 @@ const nav = [
 type Props = {
   user: { name: string; email: string };
   accounts: { id: string; name: string; institution: string | null }[];
-  preferredModel: string;
 };
 
-export function AppSidebar({ user, accounts, preferredModel }: Props) {
+export function AppSidebar({ user, accounts }: Props) {
   return (
     <Sidebar>
       <SidebarHeader className="px-4 py-3 space-y-3">
         <div className="font-semibold">Finance Tracker</div>
-        <UploadStatementDialog
+        <BulkUploadDialog
           accounts={accounts}
-          preferredModel={preferredModel}
-          trigger={<Button size="sm" className="w-full">Upload statement</Button>}
+          trigger={<Button size="sm" className="w-full">Upload statements</Button>}
         />
       </SidebarHeader>
       <SidebarContent>

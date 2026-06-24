@@ -47,6 +47,7 @@ vi.mock("@/lib/auth", () => ({
   auth: { api: { getSession: vi.fn(async () => ({ user: { id: "u1", name: "T", email: "t@x" } })) } },
 }));
 vi.mock("next/headers", () => ({ headers: vi.fn(async () => new Headers()) }));
+vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 
 describe("extract persists merchant", () => {
   it("stores the merchant when present and null when absent", async () => {
@@ -61,11 +62,11 @@ describe("extract persists merchant", () => {
       { userId: "u1", name: "Uncategorized", isSystem: true },
     ]);
 
-    const { extractStatement } = await import("@/lib/actions/extract-statement");
+    const { ingestStatement } = await import("@/lib/actions/ingest-statement");
     const fd = new FormData();
     fd.append("financialAccountId", acc.id);
     fd.append("file", new File([Buffer.from("%PDF-1.4 x")], "s.pdf", { type: "application/pdf" }));
-    const res = await extractStatement(fd);
+    const res = await ingestStatement(fd);
     expect(res.duplicate).toBe(false);
 
     const rows = await db.select().from(transactions);

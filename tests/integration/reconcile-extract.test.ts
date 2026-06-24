@@ -44,6 +44,8 @@ vi.mock("next/navigation", () => ({
   redirect: vi.fn((url: string) => { throw new Error(`REDIRECT:${url}`); }),
 }));
 
+vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
+
 const TXNS_A = [
   { posted_at: "2024-12-05", description: "Purchase A", amount: -789.55, suggested_category: "Shopping", direction: "outflow" as const },
   { posted_at: "2024-12-20", description: "Payment A", amount: 393.0, suggested_category: "Transfers", direction: "transfer" as const },
@@ -62,11 +64,11 @@ const summary = (opening: number, closing: number, txns: typeof TXNS_A) => ({
 });
 
 async function upload(accountId: string, bytes: string) {
-  const { extractStatement } = await import("@/lib/actions/extract-statement");
+  const { ingestStatement } = await import("@/lib/actions/ingest-statement");
   const fd = new FormData();
   fd.append("financialAccountId", accountId);
   fd.append("file", new File([Buffer.from(bytes)], "s.pdf", { type: "application/pdf" }));
-  await extractStatement(fd);
+  await ingestStatement(fd);
 }
 
 describe("reconciliation on extract", () => {

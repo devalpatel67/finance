@@ -9,7 +9,6 @@ import {
 } from "@/components/ui/sidebar";
 import { seedDefaultCategoriesIfMissing } from "@/lib/categories/seed";
 import { scopedDb } from "@/lib/db/scoped";
-import { getMe } from "@/lib/queries/me";
 import { financialAccounts } from "@/lib/db/schema";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
@@ -18,7 +17,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   await seedDefaultCategoriesIfMissing(session.user.id);
 
-  const me = await getMe(session.user.id);
   const accounts = await scopedDb(session.user.id).selectAll(financialAccounts);
 
   return (
@@ -26,7 +24,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <AppSidebar
         user={session.user}
         accounts={accounts}
-        preferredModel={me?.preferredModel ?? "google/gemini-2.5-flash"}
       />
       <SidebarInset>
         <header className="flex h-12 items-center gap-2 border-b px-4">
