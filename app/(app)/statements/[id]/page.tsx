@@ -11,6 +11,7 @@ import {
   transactions,
 } from "@/lib/db/schema";
 import { presignedStatementUrl } from "@/lib/storage/minio";
+import { formatCurrency } from "@/lib/format/currency";
 import { Badge } from "@/components/ui/badge";
 import { TransactionsTable } from "@/components/transactions-table";
 
@@ -89,6 +90,28 @@ export default async function StatementDetail({
           You already uploaded this statement, so we opened the existing one
           instead of importing it again. To re-extract it with a different model,
           use Reprocess above.
+        </p>
+      )}
+
+      {s.reconciliationStatus === "discrepancy" && s.closingBalance && s.reconciliationDelta && (
+        <p className="rounded border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
+          This statement may be incomplete. Expected closing balance{" "}
+          {formatCurrency(
+            Number(s.closingBalance) - Number(s.reconciliationDelta),
+            acc?.currency ?? "USD",
+          )}
+          , but the statement shows {formatCurrency(s.closingBalance, acc?.currency ?? "USD")} (off by{" "}
+          {formatCurrency(s.reconciliationDelta, acc?.currency ?? "USD")}).
+        </p>
+      )}
+      {s.reconciliationStatus === "reconciled" && (
+        <p className="rounded border border-emerald-500/40 bg-emerald-500/10 p-3 text-sm">
+          Balanced ✓ — transactions tie out to the statement balances.
+        </p>
+      )}
+      {s.reconciliationStatus === "not_available" && (
+        <p className="text-sm text-muted-foreground">
+          Couldn&apos;t verify completeness — balances weren&apos;t found on the statement.
         </p>
       )}
 
