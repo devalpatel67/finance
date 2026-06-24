@@ -114,7 +114,8 @@ export function BulkUploadDialog({
     duplicate: items.filter((i) => i.status === "duplicate").length,
     error: items.filter((i) => i.status === "error").length,
   };
-  const hasQueued = items.some((i) => i.status === "queued");
+  const queuedCount = items.filter((i) => i.status === "queued").length;
+  const processed = summary.done + summary.duplicate + summary.error;
 
   return (
     <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setItems([]); }}>
@@ -176,9 +177,15 @@ export function BulkUploadDialog({
         </div>
 
         <DialogFooter>
-          <Button onClick={start} disabled={running || !hasQueued}>
-            {running ? "Processing…" : `Upload ${items.filter((i) => i.status === "queued").length || ""}`.trim()}
-          </Button>
+          {running ? (
+            <Button disabled>Processing…</Button>
+          ) : queuedCount > 0 ? (
+            <Button onClick={start}>Upload {queuedCount}</Button>
+          ) : processed > 0 ? (
+            <Button onClick={() => setOpen(false)}>Done</Button>
+          ) : (
+            <Button disabled>Upload</Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
