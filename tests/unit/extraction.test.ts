@@ -82,6 +82,18 @@ describe("ExtractionResult schema", () => {
     ).toThrow();
   });
 
+  it("captures an optional merchant and tolerates its absence", () => {
+    const parsed = ExtractionResult.parse({
+      account_summary: { period_start: "2026-04-01", period_end: "2026-04-30", currency: "CAD" },
+      transactions: [
+        { posted_at: "2026-04-03", description: "AMZN MKTP CA*ZX1 WWW.AMAZON.CA", amount: -42.17, suggested_category: "Shopping", merchant: "Amazon" },
+        { posted_at: "2026-04-04", description: "UNKNOWN THING", amount: -1.0, suggested_category: "Other" },
+      ],
+    });
+    expect(parsed.transactions[0].merchant).toBe("Amazon");
+    expect(parsed.transactions[1].merchant).toBeUndefined();
+  });
+
   it("captures optional opening and closing balances", () => {
     const parsed = ExtractionResult.parse({
       account_summary: {
