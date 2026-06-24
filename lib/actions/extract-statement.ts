@@ -161,6 +161,7 @@ export async function extractStatement(
             statementId,
             postedAt: t.posted_at,
             description: t.description,
+            merchant: t.merchant ?? null,
             amount: t.amount.toFixed(2),
             direction: resolveDirection(t),
             currency: result.account_summary.currency,
