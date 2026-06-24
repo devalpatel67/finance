@@ -10,6 +10,7 @@ import { categories, categoryRules, financialAccounts, statements, transactions 
 import { getStatementPdf } from "@/lib/storage/minio";
 import { extractFromPdf, resolveDirection } from "@/lib/llm/extraction";
 import { resolveCategory } from "@/lib/categories/resolve";
+import { normalizeDescription } from "@/lib/categories/normalize";
 import { ALLOWED_MODEL_IDS, type ModelId } from "@/lib/llm/models";
 import { reconcile } from "@/lib/statements/reconcile";
 
@@ -53,6 +54,16 @@ export async function reprocessStatement(statementId: string, model: string) {
     amounts: result.transactions.map((t) => t.amount),
   });
 
+  const manualRows = await db
+    .select({ description: transactions.description, amount: transactions.amount, postedAt: transactions.postedAt, categoryId: transactions.categoryId })
+    .from(transactions)
+    .where(and(eq(transactions.statementId, s.id), eq(transactions.categorySource, "manual")));
+  const manualKey = (description: string, amount: string, postedAt: string) =>
+    `${normalizeDescription(description)}|${amount}|${postedAt}`;
+  const manualByKey = new Map(
+    manualRows.map((r) => [manualKey(r.description, r.amount, r.postedAt), r.categoryId]),
+  );
+
   await db.transaction(async (tx) => {
     await tx.delete(transactions).where(eq(transactions.statementId, s.id));
     await tx
@@ -83,6 +94,11 @@ export async function reprocessStatement(statementId: string, model: string) {
           direction: resolveDirection(t),
           currency: result.account_summary.currency,
           ...(() => {
+              const key = manualKey(t.description, t.amount.toFixed(2), t.posted_at);
+              const manualCat = manualByKey.get(key);
+              if (manualCat !== undefined) {
+                return { categoryId: manualCat, categorySource: "manual" as const };
+              }
               const r = resolveCategory({
                 description: t.description,
                 suggestedLabel: t.suggested_category,
