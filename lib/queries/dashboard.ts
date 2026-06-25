@@ -41,3 +41,26 @@ export async function getSpendByCategory(
     .where(and(...filters))
     .groupBy(transactions.categoryId);
 }
+
+/**
+ * Total inflow (sum of magnitudes) for the user within the optional postedAt
+ * window. Mirrors getSpendByCategory's outflow handling.
+ */
+export async function getInflowTotal(
+  userId: string,
+  fromIso: string | null,
+  toIso: string | null,
+): Promise<number> {
+  const filters: SQL[] = [
+    scopeFilter(transactions, userId),
+    eq(transactions.direction, "inflow"),
+  ];
+  if (fromIso) filters.push(gte(transactions.postedAt, fromIso));
+  if (toIso) filters.push(lte(transactions.postedAt, toIso));
+
+  const [row] = await db
+    .select({ total: sql<string>`coalesce(sum(abs(${transactions.amount})), 0)` })
+    .from(transactions)
+    .where(and(...filters));
+  return Number(row?.total ?? 0);
+}

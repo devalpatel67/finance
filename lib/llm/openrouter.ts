@@ -6,6 +6,6 @@ export const openrouter = new OpenAI({
   apiKey: env.OPENROUTER_API_KEY,
   defaultHeaders: {
     "HTTP-Referer": env.BETTER_AUTH_URL,
-    "X-Title": "Finance Tracker",
+    "X-Title": "Tabula",
   },
 });
