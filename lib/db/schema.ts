@@ -65,6 +65,7 @@ export const financialAccounts = pgTable(
     kind: text("kind", { enum: ["checking", "savings", "credit", "investment"] }).notNull(),
     institution: text("institution"),
     last4: text("last4"),
+    network: text("network", { enum: ["visa", "mastercard", "amex", "other"] }),
     currency: text("currency").notNull(),
     createdAt: timestamp("created_at").notNull().defaultNow(),
   },

@@ -50,6 +50,13 @@
       "when": 1782349906862,
       "tag": "0006_sharp_tana_nile",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1782356134753,
+      "tag": "0007_aromatic_wolverine",
+      "breakpoints": true
     }
   ]
 }

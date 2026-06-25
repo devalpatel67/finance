@@ -12,6 +12,7 @@ const Input = z.object({
   kind: z.enum(["checking", "savings", "credit", "investment"]),
   institution: z.string().max(100).optional(),
   last4: z.string().regex(/^\d{4}$/).optional(),
+  network: z.enum(["visa", "mastercard", "amex", "other"]).optional(),
   currency: z.string().length(3),
 });
 
@@ -24,6 +25,7 @@ export async function createAccount(form: FormData) {
     kind: form.get("kind"),
     institution: form.get("institution") || undefined,
     last4: form.get("last4") || undefined,
+    network: form.get("network") || undefined,
     currency: form.get("currency"),
   });
 
