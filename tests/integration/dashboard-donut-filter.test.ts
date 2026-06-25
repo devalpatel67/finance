@@ -30,6 +30,49 @@ afterAll(async () => {
 }, 30_000);
 
 describe("getSpendByCategory", () => {
+  it("sums the magnitude of outflows even when amounts are mixed-sign", async () => {
+    // Real data has inconsistently-signed outflows (bank withdrawals negative,
+    // many credit-card charges positive). Summing the signed net and taking
+    // abs lets opposite-signed rows cancel, making totals wrong and
+    // non-monotonic across ranges. The total must be sum(|amount|).
+    const { db } = await import("@/lib/db/client");
+    const { users, financialAccounts, transactions } = await import("@/lib/db/schema");
+    const { getSpendByCategory } = await import("@/lib/queries/dashboard");
+
+    await db.insert(users).values({ id: "u-mixed", name: "Mixed", email: "mixed@x" });
+    const [acc] = await db
+      .insert(financialAccounts)
+      .values({ userId: "u-mixed", name: "Card", kind: "credit", currency: "USD" })
+      .returning();
+
+    await db.insert(transactions).values([
+      {
+        userId: "u-mixed",
+        financialAccountId: acc.id,
+        postedAt: "2026-05-10",
+        description: "Charge (positive)",
+        amount: "100.00",
+        currency: "USD",
+        direction: "outflow",
+      },
+      {
+        userId: "u-mixed",
+        financialAccountId: acc.id,
+        postedAt: "2026-05-11",
+        description: "Charge (negative)",
+        amount: "-50.00",
+        currency: "USD",
+        direction: "outflow",
+      },
+    ]);
+
+    const rows = await getSpendByCategory("u-mixed", "2026-05-01", null);
+
+    expect(rows).toHaveLength(1);
+    // Magnitudes: |100| + |50| = 150. The signed net would be 50 — wrong.
+    expect(Number(rows[0].total)).toBeCloseTo(150, 2);
+  }, 60_000);
+
   it("includes only direction=outflow rows; excludes inflow and transfer", async () => {
     const { db } = await import("@/lib/db/client");
     const { users, financialAccounts, transactions } = await import("@/lib/db/schema");

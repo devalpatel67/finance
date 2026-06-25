@@ -9,11 +9,16 @@ export type SpendByCategoryRow = {
 };
 
 /**
- * Sums transaction amounts grouped by category for the given user, restricted
+ * Sums transaction spend grouped by category for the given user, restricted
  * to outflow rows. `fromIso` / `toIso` (each YYYY-MM-DD or null) bound the
  * postedAt window; null means unbounded on that side. Inflows (refunds) and
  * transfers (e.g. credit-card payments) are excluded so they don't pollute
  * the spend-by-category breakdown.
+ *
+ * Sums the magnitude (`abs`) of each amount: outflows are inconsistently
+ * signed across statements (bank withdrawals negative, many credit-card
+ * charges positive), so summing the signed net would let opposite-signed
+ * rows cancel — making totals wrong and non-monotonic as the range widens.
  */
 export async function getSpendByCategory(
   userId: string,
@@ -30,7 +35,7 @@ export async function getSpendByCategory(
   return db
     .select({
       categoryId: transactions.categoryId,
-      total: sql<string>`sum(${transactions.amount})`,
+      total: sql<string>`sum(abs(${transactions.amount}))`,
     })
     .from(transactions)
     .where(and(...filters))
