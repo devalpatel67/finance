@@ -1,7 +1,14 @@
-import { and, eq, gte, lte, sql, SQL } from "drizzle-orm";
+import { and, count, eq, gte, isNotNull, lte, sql, SQL } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import { scopeFilter } from "@/lib/db/scoped";
 import { transactions } from "@/lib/db/schema";
+
+function rangeFilters(userId: string, fromIso: string | null, toIso: string | null): SQL[] {
+  const filters: SQL[] = [scopeFilter(transactions, userId)];
+  if (fromIso) filters.push(gte(transactions.postedAt, fromIso));
+  if (toIso) filters.push(lte(transactions.postedAt, toIso));
+  return filters;
+}
 
 export type SpendByCategoryRow = {
   categoryId: string | null;
@@ -63,4 +70,74 @@ export async function getInflowTotal(
     .from(transactions)
     .where(and(...filters));
   return Number(row?.total ?? 0);
+}
+
+export type MonthlyCashFlow = { month: string; inflow: number; outflow: number };
+
+/** Money in vs out per calendar month (transfers excluded — internal moves). */
+export async function getMonthlyCashFlow(
+  userId: string,
+  fromIso: string | null,
+  toIso: string | null,
+): Promise<MonthlyCashFlow[]> {
+  const month = sql<string>`to_char(${transactions.postedAt}, 'YYYY-MM')`;
+  const rows = await db
+    .select({
+      month,
+      inflow: sql<string>`coalesce(sum(case when ${transactions.direction} = 'inflow' then abs(${transactions.amount}) else 0 end), 0)`,
+      outflow: sql<string>`coalesce(sum(case when ${transactions.direction} = 'outflow' then abs(${transactions.amount}) else 0 end), 0)`,
+    })
+    .from(transactions)
+    .where(and(...rangeFilters(userId, fromIso, toIso)))
+    .groupBy(month)
+    .orderBy(month);
+  return rows.map((r) => ({ month: r.month, inflow: Number(r.inflow), outflow: Number(r.outflow) }));
+}
+
+export type MerchantTotal = { merchant: string; total: number; count: number };
+
+/** Biggest merchants by outflow spend, with transaction counts. */
+export async function getTopMerchants(
+  userId: string,
+  fromIso: string | null,
+  toIso: string | null,
+  limit = 6,
+): Promise<MerchantTotal[]> {
+  const rows = await db
+    .select({
+      merchant: transactions.merchant,
+      total: sql<string>`sum(abs(${transactions.amount}))`,
+      count: count(),
+    })
+    .from(transactions)
+    .where(and(
+      ...rangeFilters(userId, fromIso, toIso),
+      eq(transactions.direction, "outflow"),
+      isNotNull(transactions.merchant),
+    ))
+    .groupBy(transactions.merchant)
+    .orderBy(sql`sum(abs(${transactions.amount})) desc`)
+    .limit(limit);
+  return rows
+    .filter((r): r is { merchant: string; total: string; count: number } => r.merchant != null)
+    .map((r) => ({ merchant: r.merchant, total: Number(r.total), count: Number(r.count) }));
+}
+
+export type DailySpend = { date: string; total: number };
+
+/** Daily outflow totals (for the spending heatmap). */
+export async function getDailySpend(
+  userId: string,
+  fromIso: string | null,
+  toIso: string | null,
+): Promise<DailySpend[]> {
+  const rows = await db
+    .select({
+      date: transactions.postedAt,
+      total: sql<string>`sum(abs(${transactions.amount}))`,
+    })
+    .from(transactions)
+    .where(and(...rangeFilters(userId, fromIso, toIso), eq(transactions.direction, "outflow")))
+    .groupBy(transactions.postedAt);
+  return rows.map((r) => ({ date: r.date, total: Number(r.total) }));
 }

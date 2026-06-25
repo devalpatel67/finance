@@ -2,7 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 
-import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import type { RangePreset } from "@/lib/dates/ranges";
 
 const PRESETS: { value: RangePreset; label: string }[] = [
@@ -19,7 +19,7 @@ const PRESETS: { value: RangePreset; label: string }[] = [
 export function TimeRangePicker() {
   const router = useRouter();
   const sp = useSearchParams();
-  const current = (sp.get("range") as RangePreset | null) ?? "30d";
+  const current = (sp.get("range") as RangePreset | null) ?? "6m";
   const from = sp.get("from") ?? "";
   const to = sp.get("to") ?? "";
 
@@ -43,17 +43,21 @@ export function TimeRangePicker() {
 
   return (
     <div className="flex flex-col items-end gap-2">
-      <div className="flex flex-wrap gap-1">
+      <div className="inline-flex flex-wrap items-center gap-0.5 rounded-lg border border-border bg-secondary p-1">
         {PRESETS.map((p) => (
-          <Button
+          <button
             key={p.value}
             type="button"
-            variant={current === p.value ? "default" : "outline"}
-            size="sm"
             onClick={() => setPreset(p.value)}
+            className={cn(
+              "rounded-md px-2.5 py-1 text-xs transition-colors",
+              current === p.value
+                ? "bg-card font-semibold text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground",
+            )}
           >
             {p.label}
-          </Button>
+          </button>
         ))}
       </div>
       {current === "custom" && (
