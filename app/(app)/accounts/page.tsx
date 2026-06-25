@@ -8,6 +8,7 @@ import { AddAccountDialog } from "@/components/add-account-dialog";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/empty-state";
+import { kindLabel } from "@/lib/accounts/kind-label";
 
 export default async function AccountsPage() {
   const session = (await auth.api.getSession({ headers: await headers() }))!;
@@ -34,7 +35,7 @@ export default async function AccountsPage() {
             <Card key={a.id} className="p-4">
               <Link href={`/accounts/${a.id}`} className="font-medium hover:underline">{a.name}</Link>
               <div className="text-sm text-muted-foreground">
-                {a.kind}{a.institution ? ` · ${a.institution}` : ""}{a.last4 ? ` · …${a.last4}` : ""}
+                {kindLabel(a.kind)}{a.institution ? ` · ${a.institution}` : ""}{a.last4 ? ` · …${a.last4}` : ""}
               </div>
               <div className="mt-2 text-xs text-muted-foreground">{a.currency}</div>
             </Card>
