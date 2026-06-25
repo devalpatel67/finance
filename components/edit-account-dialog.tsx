@@ -67,7 +67,7 @@ export function EditAccountDialog({ account }: { account: Account }) {
             <Select name="kind" defaultValue={account.kind}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="checking">Checking</SelectItem>
+                <SelectItem value="checking">Chequing</SelectItem>
                 <SelectItem value="savings">Savings</SelectItem>
                 <SelectItem value="credit">Credit</SelectItem>
                 <SelectItem value="investment">Investment</SelectItem>

@@ -46,7 +46,7 @@ export function AddAccountDialog({
             <Select name="kind" defaultValue="checking">
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="checking">Checking</SelectItem>
+                <SelectItem value="checking">Chequing</SelectItem>
                 <SelectItem value="savings">Savings</SelectItem>
                 <SelectItem value="credit">Credit</SelectItem>
                 <SelectItem value="investment">Investment</SelectItem>

@@ -8,6 +8,7 @@ import { financialAccounts, statements, transactions, categories } from "@/lib/d
 import { TransactionsTable } from "@/components/transactions-table";
 import { DeleteAccountButton } from "@/components/delete-account-button";
 import { EditAccountDialog } from "@/components/edit-account-dialog";
+import { kindLabel } from "@/lib/accounts/kind-label";
 
 export default async function AccountDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -35,7 +36,7 @@ export default async function AccountDetail({ params }: { params: Promise<{ id: 
         <div>
           <h1 className="text-2xl font-semibold">{a.name}</h1>
           <p className="text-muted-foreground">
-            {a.kind}{a.institution ? ` · ${a.institution}` : ""}{a.last4 ? ` · …${a.last4}` : ""} · {a.currency}
+            {kindLabel(a.kind)}{a.institution ? ` · ${a.institution}` : ""}{a.last4 ? ` · …${a.last4}` : ""} · {a.currency}
           </p>
         </div>
         <div className="flex items-center gap-2">
