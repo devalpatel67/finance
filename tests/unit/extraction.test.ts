@@ -14,10 +14,11 @@ describe("buildSystemPrompt", () => {
     expect(p).not.toContain("Choose suggested_category from");
   });
 
-  it("instructs the model to always extract last4", () => {
+  it("instructs the model to capture the full account number (last4 is fallback)", () => {
     const p = buildSystemPrompt([]);
-    expect(p).toMatch(/always return `last4`/i);
-    expect(p).toMatch(/last 4 digits of the account or card number/i);
+    expect(p).toMatch(/account_number/);
+    expect(p).toMatch(/full account or card number/i);
+    expect(p).toMatch(/last4/);
   });
 });
 

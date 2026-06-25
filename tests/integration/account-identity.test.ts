@@ -81,6 +81,26 @@ describe("account identity matching", () => {
     expect(all.length).toBe(1);
   });
 
+  it("derives last4 from a space-grouped account number and converges", async () => {
+    await seedUser();
+    const { db } = await import("@/lib/db/client");
+    const { financialAccounts } = await import("@/lib/db/schema");
+    const { and, eq } = await import("drizzle-orm");
+    const { ingestStatement } = await import("@/lib/actions/ingest-statement");
+
+    extractMock.mockResolvedValueOnce(summary({ institution: "Scotiabank", account_number: "93922 16843 88", account_type: "checking" }));
+    const a = await ingestStatement(pdf("scotia-1.pdf"));
+    extractMock.mockResolvedValueOnce(summary({ institution: "Scotiabank", account_number: "93922 16843 88", account_type: "checking" }));
+    const b = await ingestStatement(pdf("scotia-2.pdf"));
+
+    expect(a.account.id).toBe(b.account.id);
+    const accts = await db.select().from(financialAccounts).where(and(
+      eq(financialAccounts.userId, "u1"),
+      eq(financialAccounts.last4, "4388"),
+    ));
+    expect(accts.length).toBe(1);
+  });
+
   it("collapses multiple no-last4 statements from one institution into a single bucket account", async () => {
     await seedUser();
     const { db } = await import("@/lib/db/client");

@@ -14,6 +14,7 @@ import { sha256Hex } from "@/lib/statements/hash";
 import { extractFromPdf, resolveDirection } from "@/lib/llm/extraction";
 import { resolveCategory } from "@/lib/categories/resolve";
 import { resolveAccount, findBucketAccount } from "@/lib/accounts/resolve-account";
+import { deriveLast4 } from "@/lib/accounts/last4";
 import { ALLOWED_MODEL_IDS, DEFAULT_MODEL, type ModelId } from "@/lib/llm/models";
 import { reconcile, type ReconciliationStatus } from "@/lib/statements/reconcile";
 
@@ -135,7 +136,10 @@ export async function ingestStatement(formData: FormData): Promise<IngestResult>
     const accts = await db.select().from(financialAccounts).where(eq(financialAccounts.userId, userId));
     const kind = result.account_summary.account_type ?? "checking";
     const institution = result.account_summary.institution ?? null;
-    const last4 = result.account_summary.last4 ?? null;
+    const last4 = deriveLast4({
+      accountNumber: result.account_summary.account_number,
+      last4: result.account_summary.last4,
+    });
 
     const match = resolveAccount({
       extracted: { institution, last4, kind: result.account_summary.account_type ?? null },
