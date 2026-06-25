@@ -7,6 +7,7 @@ import { scopedDb } from "@/lib/db/scoped";
 import { financialAccounts, statements, transactions, categories } from "@/lib/db/schema";
 import { TransactionsTable } from "@/components/transactions-table";
 import { DeleteAccountButton } from "@/components/delete-account-button";
+import { EditAccountDialog } from "@/components/edit-account-dialog";
 
 export default async function AccountDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -37,11 +38,19 @@ export default async function AccountDetail({ params }: { params: Promise<{ id: 
             {a.kind}{a.institution ? ` · ${a.institution}` : ""}{a.last4 ? ` · …${a.last4}` : ""} · {a.currency}
           </p>
         </div>
-        <DeleteAccountButton
-          accountId={a.id}
-          accountName={a.name}
-          empty={stmts.length === 0 && txns.length === 0}
-        />
+        <div className="flex items-center gap-2">
+          <EditAccountDialog
+            account={{
+              id: a.id, name: a.name, kind: a.kind,
+              institution: a.institution, last4: a.last4, currency: a.currency,
+            }}
+          />
+          <DeleteAccountButton
+            accountId={a.id}
+            accountName={a.name}
+            empty={stmts.length === 0 && txns.length === 0}
+          />
+        </div>
       </header>
 
       <section>
