@@ -1,14 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { weekdayShort } from "@/lib/format/date";
+import { weekdayLong } from "@/lib/format/date";
 
-describe("weekdayShort", () => {
-  it("returns the UTC weekday for a date string", () => {
-    expect(weekdayShort("2021-01-01")).toBe("Fri");
-    expect(weekdayShort("2000-01-01")).toBe("Sat");
-    expect(weekdayShort("2026-06-18")).toBe("Thu");
+describe("weekdayLong", () => {
+  it("returns the full UTC weekday for a date string", () => {
+    expect(weekdayLong("2021-01-01")).toBe("Friday");
+    expect(weekdayLong("2000-01-01")).toBe("Saturday");
+    expect(weekdayLong("2026-06-18")).toBe("Thursday");
   });
   it("returns empty string for malformed input", () => {
-    expect(weekdayShort("")).toBe("");
-    expect(weekdayShort("nope")).toBe("");
+    expect(weekdayLong("")).toBe("");
+    expect(weekdayLong("nope")).toBe("");
   });
 });

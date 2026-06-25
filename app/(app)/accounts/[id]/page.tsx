@@ -46,7 +46,7 @@ export default async function AccountDetail({ params }: { params: Promise<{ id: 
           <div>
             <h1 className="text-2xl font-semibold">{a.name}</h1>
             <p className="text-muted-foreground">
-              {kindLabel(a.kind)}{a.institution ? ` · ${a.institution}` : ""}{a.last4 ? ` · …${a.last4}` : ""} · {a.currency}
+              {kindLabel(a.kind)}{a.last4 ? ` · ··${a.last4}` : ""}
             </p>
           </div>
         </div>
