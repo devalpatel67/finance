@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "financial_accounts_user_kind_last4" ON "financial_accounts" USING btree ("user_id","kind","last4") WHERE "financial_accounts"."last4" is not null;

@@ -88,22 +88,31 @@ describe("ingestStatement account detection", () => {
     await seed();
     const { db } = await import("@/lib/db/client");
     const { financialAccounts } = await import("@/lib/db/schema");
-    const { eq } = await import("drizzle-orm");
-    const [existing] = await db.insert(financialAccounts).values({
+    const { and, eq, sql } = await import("drizzle-orm");
+    // Ensure a matching account exists, independent of test order: a prior test
+    // may already have created (u1, credit, 9001), which the unique index now
+    // enforces as singular.
+    await db.insert(financialAccounts).values({
       userId: "u1", name: "My Amex", kind: "credit", institution: "Amex", last4: "9001", currency: "USD",
-    }).returning();
+    }).onConflictDoNothing({
+      target: [financialAccounts.userId, financialAccounts.kind, financialAccounts.last4],
+      where: sql`${financialAccounts.last4} is not null`,
+    });
+    const byIdentity = () =>
+      db.select().from(financialAccounts).where(and(
+        eq(financialAccounts.userId, "u1"),
+        eq(financialAccounts.kind, "credit"),
+        eq(financialAccounts.last4, "9001"),
+      ));
+    const [existing] = await byIdentity();
 
     const { ingestStatement } = await import("@/lib/actions/ingest-statement");
     const res = await ingestStatement(pdf("amex-may.pdf"));
 
     expect(res.account.id).toBe(existing.id);
     expect(res.account.autoCreated).toBe(false);
-    // Verify no extra account was created with institution "Amex" (the inserted one).
-    const { and } = await import("drizzle-orm");
-    const amexAccounts = await db.select().from(financialAccounts).where(
-      and(eq(financialAccounts.userId, "u1"), eq(financialAccounts.institution, "Amex")),
-    );
-    expect(amexAccounts.length).toBe(1);
+    // Still exactly one account for that identity — nothing duplicated.
+    expect((await byIdentity()).length).toBe(1);
   });
 
   it("short-circuits a duplicate PDF without re-extracting", async () => {

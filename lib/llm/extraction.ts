@@ -47,6 +47,7 @@ Rules:
 - Report the statement's stated opening/previous balance as \`opening_balance\` and the closing/new balance as \`closing_balance\`, as printed. For credit-card statements these are the previous balance and the new balance owed. Omit them only if the statement does not show them.
 - Also return \`merchant\`: a short, human-friendly business or brand name for the transaction (e.g. "Amazon", "A&W", "Spotify", "Interest charge"). Strip store numbers, URLs, cities and province codes. Omit it only when no sensible name can be derived.
 - Also return \`account_type\`: classify the statement's account as \`checking\`, \`savings\`, \`credit\` (a credit-card statement), or \`investment\`, based on the statement header and layout. Omit it only if genuinely unclear.
+- Always return \`last4\`: the last 4 digits of the account or card number this statement is for (look for the account number, card number, or a masked number like "****1234" in the header/summary). Nearly every statement shows this — extract it whenever it appears, as it identifies which account the statement belongs to.
 - Include every transaction; do not summarize or skip rows.`;
 
 export function buildSystemPrompt(categoryNames: string[]): string {
