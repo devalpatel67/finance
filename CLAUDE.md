@@ -1,6 +1,6 @@
-# Finance Tracker
+# Tabula
 
-Multi-tenant personal finance tracker. Users sign in with Google, upload PDF bank/credit-card statements, get back categorized transactions and spending insights.
+Tabula (tabulafinance.com) — a multi-tenant personal finance tracker. Users sign in with Google, upload PDF bank/credit-card statements, and get back categorized transactions, reconciliation, and spending insights. Product/brand name is **Tabula**; the Linear project is still named "Finance Tracker" (see below).
 
 V1 design spec: [`docs/superpowers/specs/2026-05-25-finance-tracker-design.md`](docs/superpowers/specs/2026-05-25-finance-tracker-design.md)
 

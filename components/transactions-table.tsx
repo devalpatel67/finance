@@ -43,17 +43,17 @@ function Amount({
 }) {
   const value = formatCurrency(amount, currency);
   if (direction === "inflow") {
-    return <span className="tabular-nums font-medium text-emerald-600">+{value}</span>;
+    return <span className="font-mono text-sm tabular-nums font-medium text-positive">+{value}</span>;
   }
   if (direction === "transfer") {
     return (
-      <span className="tabular-nums font-medium text-muted-foreground" title="Transfer">
-        <span aria-hidden className="mr-1 text-xs">⇄</span>
+      <span className="font-mono text-sm tabular-nums font-medium text-muted-foreground" title="Transfer">
+        <span aria-hidden className="mr-1">⇄</span>
         {value}
       </span>
     );
   }
-  return <span className="tabular-nums font-medium text-foreground/80">−{value}</span>;
+  return <span className="font-mono text-sm tabular-nums font-medium text-foreground/80">−{value}</span>;
 }
 
 export function TransactionsTable({
@@ -69,24 +69,24 @@ export function TransactionsTable({
     return <p className="text-sm text-muted-foreground">No transactions.</p>;
   }
   return (
-    <Table>
+    <Table className="table-fixed">
       <TableHeader>
         <TableRow className="hover:bg-transparent">
-          <TableHead className={`${headClass} w-[104px]`}>Date</TableHead>
-          {showAccount && <TableHead className={`${headClass} w-[210px]`}>Account</TableHead>}
+          <TableHead className={`${headClass} w-[96px]`}>Date</TableHead>
+          {showAccount && <TableHead className={`${headClass} w-[156px]`}>Account</TableHead>}
           <TableHead className={headClass}>Description</TableHead>
-          <TableHead className={`${headClass} w-[190px]`}>Category</TableHead>
-          <TableHead className={`${headClass} w-[140px] text-right`}>Amount</TableHead>
+          <TableHead className={`${headClass} w-[150px]`}>Category</TableHead>
+          <TableHead className={`${headClass} w-[124px] text-right`}>Amount</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
         {rows.map((r) => (
           <TableRow key={r.id}>
-            <TableCell className="whitespace-nowrap text-sm tabular-nums text-muted-foreground">
+            <TableCell className="whitespace-nowrap font-mono text-xs tabular-nums text-muted-foreground">
               {r.postedAt}
             </TableCell>
             {showAccount && (
-              <TableCell className="whitespace-nowrap text-sm text-muted-foreground">
+              <TableCell className="truncate text-sm text-muted-foreground" title={r.account?.name}>
                 {r.account ? (
                   <>
                     {r.account.name}
@@ -97,8 +97,8 @@ export function TransactionsTable({
                 )}
               </TableCell>
             )}
-            <TableCell title={r.description}>
-              <div className="font-medium text-foreground/90">{r.merchant ?? r.description}</div>
+            <TableCell className="min-w-0" title={r.description}>
+              <div className="truncate font-medium text-foreground/90">{r.merchant ?? r.description}</div>
               {r.merchant && (
                 <div className="truncate text-xs text-muted-foreground">{r.description}</div>
               )}
@@ -111,7 +111,7 @@ export function TransactionsTable({
                 description={r.description}
               />
             </TableCell>
-            <TableCell className="text-right">
+            <TableCell className="whitespace-nowrap text-right">
               <Amount amount={r.amount} currency={r.currency} direction={r.direction} />
             </TableCell>
           </TableRow>

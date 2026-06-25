@@ -1,7 +1,9 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import { AppSidebar } from "@/components/app-sidebar";
+import { Logo } from "@/components/logo";
 import {
   SidebarInset,
   SidebarProvider,
@@ -26,10 +28,13 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         accounts={accounts}
       />
       <SidebarInset>
-        <header className="flex h-12 items-center gap-2 border-b px-4">
+        <header className="sticky top-0 z-10 flex h-12 items-center gap-2 border-b bg-background/80 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <SidebarTrigger />
+          <Link href="/dashboard" className="md:hidden">
+            <Logo size={18} />
+          </Link>
         </header>
-        <main className="flex-1 p-6">{children}</main>
+        <main className="mx-auto w-full max-w-6xl flex-1 p-6 md:p-8">{children}</main>
       </SidebarInset>
     </SidebarProvider>
   );
