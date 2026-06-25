@@ -5,17 +5,17 @@ import { parseRange, formatRangeLabel } from "@/lib/dates/ranges";
 const TODAY = new Date("2026-05-29T00:00:00Z");
 
 describe("parseRange", () => {
-  it("defaults to 30d when range is omitted", () => {
+  it("defaults to 6m when range is omitted", () => {
     const r = parseRange({}, TODAY);
-    expect(r.preset).toBe("30d");
-    expect(r.fromIso).toBe("2026-04-29");
+    expect(r.preset).toBe("6m");
+    expect(r.fromIso).toBe("2025-11-29");
     expect(r.toIso).toBeNull();
   });
 
-  it("falls back to 30d on unknown range value", () => {
+  it("falls back to 6m on unknown range value", () => {
     const r = parseRange({ range: "bogus" }, TODAY);
-    expect(r.preset).toBe("30d");
-    expect(r.fromIso).toBe("2026-04-29");
+    expect(r.preset).toBe("6m");
+    expect(r.fromIso).toBe("2025-11-29");
     expect(r.toIso).toBeNull();
   });
 

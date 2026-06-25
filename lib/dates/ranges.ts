@@ -65,7 +65,7 @@ export function parseRange(
 ): Range {
   const raw = searchParams.range;
   const preset: RangePreset =
-    raw && PRESETS.has(raw as RangePreset) ? (raw as RangePreset) : "30d";
+    raw && PRESETS.has(raw as RangePreset) ? (raw as RangePreset) : "6m";
 
   switch (preset) {
     case "30d":

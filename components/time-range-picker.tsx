@@ -19,7 +19,7 @@ const PRESETS: { value: RangePreset; label: string }[] = [
 export function TimeRangePicker() {
   const router = useRouter();
   const sp = useSearchParams();
-  const current = (sp.get("range") as RangePreset | null) ?? "30d";
+  const current = (sp.get("range") as RangePreset | null) ?? "6m";
   const from = sp.get("from") ?? "";
   const to = sp.get("to") ?? "";
 
