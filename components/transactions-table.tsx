@@ -10,6 +10,9 @@ import {
 } from "@/components/ui/table";
 
 import { formatCurrency } from "@/lib/format/currency";
+import { weekdayLong } from "@/lib/format/date";
+import { kindLabel } from "@/lib/accounts/kind-label";
+import type { AccountKind } from "@/lib/accounts/resolve-account";
 import { CategoryPicker } from "./category-picker";
 
 type Row = {
@@ -21,7 +24,7 @@ type Row = {
   currency: string;
   categoryId: string | null;
   direction: "outflow" | "inflow" | "transfer";
-  account?: { name: string; last4: string | null };
+  account?: { name: string; last4: string | null; kind: AccountKind };
 };
 
 type Category = { id: string; name: string; color: string };
@@ -82,18 +85,21 @@ export function TransactionsTable({
       <TableBody>
         {rows.map((r) => (
           <TableRow key={r.id}>
-            <TableCell className="whitespace-nowrap font-mono text-xs tabular-nums text-muted-foreground">
-              {r.postedAt}
+            <TableCell className="whitespace-nowrap align-top">
+              <div className="font-mono text-xs tabular-nums text-foreground/70">{r.postedAt}</div>
+              <div className="mt-0.5 text-[11px] text-muted-foreground">{weekdayLong(r.postedAt)}</div>
             </TableCell>
             {showAccount && (
-              <TableCell className="truncate text-sm text-muted-foreground" title={r.account?.name}>
+              <TableCell className="align-top" title={r.account?.name}>
                 {r.account ? (
                   <>
-                    {r.account.name}
-                    {r.account.last4 && <span className="ml-1 opacity-60">··{r.account.last4}</span>}
+                    <div className="truncate text-sm font-medium text-foreground/80">{r.account.name}</div>
+                    <div className="mt-0.5 truncate text-[11px] text-muted-foreground">
+                      {kindLabel(r.account.kind)}{r.account.last4 ? ` · ··${r.account.last4}` : ""}
+                    </div>
                   </>
                 ) : (
-                  <span>—</span>
+                  <span className="text-sm text-muted-foreground">—</span>
                 )}
               </TableCell>
             )}

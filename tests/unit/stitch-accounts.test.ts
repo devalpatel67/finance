@@ -4,8 +4,8 @@ import { stitchAccountsIntoRows } from "@/lib/transactions/stitch-accounts";
 
 describe("stitchAccountsIntoRows", () => {
   const accounts = [
-    { id: "acc-1", name: "Chase Checking", last4: "1234" },
-    { id: "acc-2", name: "Amex Gold", last4: null },
+    { id: "acc-1", name: "Chase Checking", last4: "1234", kind: "checking" as const },
+    { id: "acc-2", name: "Amex Gold", last4: null, kind: "credit" as const },
   ];
 
   it("attaches account details when financialAccountId matches", () => {
@@ -16,8 +16,8 @@ describe("stitchAccountsIntoRows", () => {
 
     const out = stitchAccountsIntoRows(rows, accounts);
 
-    expect(out[0].account).toEqual({ name: "Chase Checking", last4: "1234" });
-    expect(out[1].account).toEqual({ name: "Amex Gold", last4: null });
+    expect(out[0].account).toEqual({ name: "Chase Checking", last4: "1234", kind: "checking" });
+    expect(out[1].account).toEqual({ name: "Amex Gold", last4: null, kind: "credit" });
   });
 
   it("leaves account undefined when no account matches", () => {
