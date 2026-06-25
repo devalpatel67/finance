@@ -1,4 +1,4 @@
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 import {
   pgTable, text, timestamp, boolean, uuid, date, numeric, jsonb, uniqueIndex, index,
 } from "drizzle-orm/pg-core";
@@ -56,16 +56,27 @@ export const verifications = pgTable("verifications", {
 
 // ─── Business tables ─────────────────────────────────────────────────
 
-export const financialAccounts = pgTable("financial_accounts", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  name: text("name").notNull(),
-  kind: text("kind", { enum: ["checking", "savings", "credit", "investment"] }).notNull(),
-  institution: text("institution"),
-  last4: text("last4"),
-  currency: text("currency").notNull(),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+export const financialAccounts = pgTable(
+  "financial_accounts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    kind: text("kind", { enum: ["checking", "savings", "credit", "investment"] }).notNull(),
+    institution: text("institution"),
+    last4: text("last4"),
+    currency: text("currency").notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => ({
+    // One account per (user, kind, last4) when last4 is known — lets concurrent
+    // uploads from the same account converge via onConflictDoNothing instead of
+    // each creating a duplicate. Rows with null last4 are exempt (bucketed).
+    identityIdx: uniqueIndex("financial_accounts_user_kind_last4")
+      .on(t.userId, t.kind, t.last4)
+      .where(sql`${t.last4} is not null`),
+  }),
+);
 
 export const statements = pgTable(
   "statements",

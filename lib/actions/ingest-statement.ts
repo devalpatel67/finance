@@ -3,7 +3,7 @@
 import { randomUUID } from "node:crypto";
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
-import { and, count, desc, eq } from "drizzle-orm";
+import { and, count, desc, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import { auth } from "@/lib/auth";
@@ -13,7 +13,7 @@ import { putStatementPdf } from "@/lib/storage/minio";
 import { sha256Hex } from "@/lib/statements/hash";
 import { extractFromPdf, resolveDirection } from "@/lib/llm/extraction";
 import { resolveCategory } from "@/lib/categories/resolve";
-import { resolveAccount } from "@/lib/accounts/resolve-account";
+import { resolveAccount, findBucketAccount } from "@/lib/accounts/resolve-account";
 import { ALLOWED_MODEL_IDS, DEFAULT_MODEL, type ModelId } from "@/lib/llm/models";
 import { reconcile, type ReconciliationStatus } from "@/lib/statements/reconcile";
 
@@ -133,26 +133,66 @@ export async function ingestStatement(formData: FormData): Promise<IngestResult>
     account = a;
   } else {
     const accts = await db.select().from(financialAccounts).where(eq(financialAccounts.userId, userId));
+    const kind = result.account_summary.account_type ?? "checking";
+    const institution = result.account_summary.institution ?? null;
+    const last4 = result.account_summary.last4 ?? null;
+
     const match = resolveAccount({
-      extracted: { institution: result.account_summary.institution, last4: result.account_summary.last4 },
+      extracted: { institution, last4, kind: result.account_summary.account_type ?? null },
       accounts: accts,
     });
+
     if (match.kind === "matched") {
       account = accts.find((a) => a.id === match.account.id)!;
     } else if (match.kind === "ambiguous") {
       account = accts.find((a) => a.id === match.account.id)!;
       needsReview = true;
-    } else {
+    } else if (last4) {
+      // No existing match. Create convergently: a concurrent sibling in the
+      // same batch may insert the same (user, kind, last4) first, so
+      // onConflictDoNothing + re-select makes them all land on one account
+      // instead of each creating a duplicate.
       const [created] = await db.insert(financialAccounts).values({
         userId,
-        name: autoCreateName(result.account_summary.institution, result.account_summary.last4, file.name),
-        kind: result.account_summary.account_type ?? "checking",
-        institution: result.account_summary.institution ?? null,
-        last4: result.account_summary.last4 ?? null,
+        name: autoCreateName(institution ?? undefined, last4, file.name),
+        kind,
+        institution,
+        last4,
         currency: result.account_summary.currency,
+      }).onConflictDoNothing({
+        target: [financialAccounts.userId, financialAccounts.kind, financialAccounts.last4],
+        where: sql`${financialAccounts.last4} is not null`,
       }).returning();
-      account = created;
-      autoCreated = true;
+      if (created) {
+        account = created;
+        autoCreated = true;
+      } else {
+        const [winner] = await db.select().from(financialAccounts).where(and(
+          eq(financialAccounts.userId, userId),
+          eq(financialAccounts.kind, kind),
+          eq(financialAccounts.last4, last4),
+        )).limit(1);
+        if (!winner) throw new Error("Account convergence failed");
+        account = winner;
+      }
+    } else {
+      // last4 couldn't be extracted — bucket by institution + kind so
+      // unreadable statements collapse onto one account, not one per file.
+      const bucket = findBucketAccount(accts, { institution, kind });
+      if (bucket) {
+        account = accts.find((a) => a.id === bucket.id)!;
+      } else {
+        const [created] = await db.insert(financialAccounts).values({
+          userId,
+          name: autoCreateName(institution ?? undefined, undefined, file.name),
+          kind,
+          institution,
+          last4: null,
+          currency: result.account_summary.currency,
+        }).returning();
+        account = created;
+        autoCreated = true;
+      }
     }
   }
 

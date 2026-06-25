@@ -13,6 +13,12 @@ describe("buildSystemPrompt", () => {
     const p = buildSystemPrompt([]);
     expect(p).not.toContain("Choose suggested_category from");
   });
+
+  it("instructs the model to always extract last4", () => {
+    const p = buildSystemPrompt([]);
+    expect(p).toMatch(/always return `last4`/i);
+    expect(p).toMatch(/last 4 digits of the account or card number/i);
+  });
 });
 
 describe("ExtractionResult schema", () => {

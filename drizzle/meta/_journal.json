@@ -43,6 +43,13 @@
       "when": 1782330561801,
       "tag": "0005_shiny_senator_kelly",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1782349906862,
+      "tag": "0006_sharp_tana_nile",
+      "breakpoints": true
     }
   ]
 }
