@@ -35,9 +35,9 @@ const msOf = (s: string) => {
 
 function Tile({ label, value, hint, positive }: { label: string; value: string; hint?: React.ReactNode; positive?: boolean }) {
   return (
-    <Card className="p-5">
+    <Card className="min-w-0 p-5">
       <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{label}</p>
-      <div className={`mt-2.5 font-mono text-2xl font-medium tabular-nums ${positive ? "text-positive" : ""}`}>{value}</div>
+      <div className={`mt-2.5 truncate font-mono text-xl font-medium tabular-nums ${positive ? "text-positive" : ""}`} title={value}>{value}</div>
       {hint && <p className="mt-1.5 text-xs text-muted-foreground">{hint}</p>}
     </Card>
   );
