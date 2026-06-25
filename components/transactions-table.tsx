@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/table";
 
 import { formatCurrency } from "@/lib/format/currency";
+import { weekdayShort } from "@/lib/format/date";
 import { CategoryPicker } from "./category-picker";
 
 type Row = {
@@ -82,8 +83,9 @@ export function TransactionsTable({
       <TableBody>
         {rows.map((r) => (
           <TableRow key={r.id}>
-            <TableCell className="whitespace-nowrap font-mono text-xs tabular-nums text-muted-foreground">
-              {r.postedAt}
+            <TableCell className="whitespace-nowrap align-top">
+              <div className="font-mono text-xs tabular-nums text-foreground/70">{r.postedAt}</div>
+              <div className="mt-0.5 text-[11px] text-muted-foreground">{weekdayShort(r.postedAt)}</div>
             </TableCell>
             {showAccount && (
               <TableCell className="truncate text-sm text-muted-foreground" title={r.account?.name}>
