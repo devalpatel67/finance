@@ -57,6 +57,22 @@ describe("updateAccount", () => {
     expect(after.name).toBe("RBC Chequing (Personal)");
   });
 
+  it("persists the card network", async () => {
+    await seedUsers();
+    const { db } = await import("@/lib/db/client");
+    const { financialAccounts } = await import("@/lib/db/schema");
+    const { eq } = await import("drizzle-orm");
+    const [acc] = await db.insert(financialAccounts).values({
+      userId: "u1", name: "Card", kind: "credit", institution: "RBC", last4: "9999", currency: "CAD",
+    }).returning();
+
+    const { updateAccount } = await import("@/lib/actions/update-account");
+    await updateAccount({ id: acc.id, name: "Card", kind: "credit", institution: "RBC", last4: "9999", network: "visa", currency: "CAD" });
+
+    const [after] = await db.select().from(financialAccounts).where(eq(financialAccounts.id, acc.id));
+    expect(after.network).toBe("visa");
+  });
+
   it("re-reconciles the account's statements when kind changes", async () => {
     await seedUsers();
     const { db } = await import("@/lib/db/client");

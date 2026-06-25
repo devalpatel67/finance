@@ -8,6 +8,7 @@ import { financialAccounts, statements, transactions, categories } from "@/lib/d
 import { TransactionsTable } from "@/components/transactions-table";
 import { DeleteAccountButton } from "@/components/delete-account-button";
 import { EditAccountDialog } from "@/components/edit-account-dialog";
+import { PaymentCard } from "@/components/payment-card";
 import { kindLabel } from "@/lib/accounts/kind-label";
 
 export default async function AccountDetail({ params }: { params: Promise<{ id: string }> }) {
@@ -32,18 +33,28 @@ export default async function AccountDetail({ params }: { params: Promise<{ id: 
 
   return (
     <div className="space-y-6">
-      <header className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold">{a.name}</h1>
-          <p className="text-muted-foreground">
-            {kindLabel(a.kind)}{a.institution ? ` · ${a.institution}` : ""}{a.last4 ? ` · …${a.last4}` : ""} · {a.currency}
-          </p>
+      <header className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex items-center gap-5">
+          <div className="hidden w-[260px] shrink-0 sm:block">
+            <PaymentCard
+              data={{
+                institution: a.institution, name: a.name, kind: a.kind,
+                last4: a.last4, currency: a.currency, network: a.network,
+              }}
+            />
+          </div>
+          <div>
+            <h1 className="text-2xl font-semibold">{a.name}</h1>
+            <p className="text-muted-foreground">
+              {kindLabel(a.kind)}{a.institution ? ` · ${a.institution}` : ""}{a.last4 ? ` · …${a.last4}` : ""} · {a.currency}
+            </p>
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <EditAccountDialog
             account={{
               id: a.id, name: a.name, kind: a.kind,
-              institution: a.institution, last4: a.last4, currency: a.currency,
+              institution: a.institution, last4: a.last4, network: a.network, currency: a.currency,
             }}
           />
           <DeleteAccountButton

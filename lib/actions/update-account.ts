@@ -16,6 +16,7 @@ const Input = z.object({
   kind: z.enum(["checking", "savings", "credit", "investment"]),
   institution: z.string().max(100).optional(),
   last4: z.string().regex(/^\d{4}$/).optional(),
+  network: z.enum(["visa", "mastercard", "amex", "other"]).optional(),
   currency: z.string().length(3),
 });
 
@@ -25,6 +26,7 @@ export async function updateAccount(input: {
   kind: "checking" | "savings" | "credit" | "investment";
   institution?: string;
   last4?: string;
+  network?: "visa" | "mastercard" | "amex" | "other";
   currency: string;
 }): Promise<{ id: string }> {
   const session = await auth.api.getSession({ headers: await headers() });
@@ -44,6 +46,7 @@ export async function updateAccount(input: {
     kind: parsed.kind,
     institution: parsed.institution ?? null,
     last4: parsed.last4 ?? null,
+    network: parsed.network ?? null,
     currency: parsed.currency,
   };
 
