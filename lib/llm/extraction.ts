@@ -7,6 +7,7 @@ const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "ISO date required");
 export const ExtractionResult = z.object({
   account_summary: z.object({
     institution: z.string().optional(),
+    account_number: z.string().optional(),
     last4: z.string().optional(),
     period_start: isoDate,
     period_end: isoDate,
@@ -47,7 +48,8 @@ Rules:
 - Report the statement's stated opening/previous balance as \`opening_balance\` and the closing/new balance as \`closing_balance\`, as printed. For credit-card statements these are the previous balance and the new balance owed. Omit them only if the statement does not show them.
 - Also return \`merchant\`: a short, human-friendly business or brand name for the transaction (e.g. "Amazon", "A&W", "Spotify", "Interest charge"). Strip store numbers, URLs, cities and province codes. Omit it only when no sensible name can be derived.
 - Also return \`account_type\`: classify the statement's account as \`checking\`, \`savings\`, \`credit\` (a credit-card statement), or \`investment\`, based on the statement header and layout. Omit it only if genuinely unclear.
-- Always return \`last4\`: the last 4 digits of the account or card number this statement is for (look for the account number, card number, or a masked number like "****1234" in the header/summary). Nearly every statement shows this — extract it whenever it appears, as it identifies which account the statement belongs to.
+- Return \`account_number\`: the FULL account or card number for this statement, exactly as printed, including every digit and any spaces or grouping (e.g. "93922 16843 88" or "4519 •••• •••• 7012"). Look in the header/summary. This is the primary way we identify which account the statement belongs to, so copy it verbatim — do not shorten, reformat, or pick out a fragment.
+- Also return \`last4\`: the last 4 digits of that account/card number, as a fallback only when the full number isn't legible. Prefer \`account_number\`.
 - Include every transaction; do not summarize or skip rows.`;
 
 export function buildSystemPrompt(categoryNames: string[]): string {
@@ -72,6 +74,7 @@ const JSON_SCHEMA = {
         required: ["period_start", "period_end", "currency"],
         properties: {
           institution: { type: "string" },
+          account_number: { type: "string" },
           last4: { type: "string" },
           period_start: { type: "string" },
           period_end: { type: "string" },
