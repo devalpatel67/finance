@@ -73,16 +73,20 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     priorFrom = isoOf(fromMs - DAY - (toMs - fromMs));
   }
 
+  // Internal transfers aren't income or spending — exclude that category from
+  // every analysis (some transfer rows are stored as outflow/inflow).
+  const cats = await sdb.selectAll(categories);
+  const transfersId = cats.find((c) => c.name === "Transfers")?.id;
+
   const [spend, inflow, cashflow, merchants, dailyYear, priorSpend] = await Promise.all([
-    getSpendByCategory(userId, range.fromIso, range.toIso),
-    getInflowTotal(userId, range.fromIso, range.toIso),
-    getMonthlyCashFlow(userId, range.fromIso, range.toIso),
-    getTopMerchants(userId, range.fromIso, range.toIso, 6),
-    getDailySpend(userId, isoOf(todayMs - 364 * DAY), todayIso),
-    priorFrom ? getSpendByCategory(userId, priorFrom, priorTo) : Promise.resolve(null),
+    getSpendByCategory(userId, range.fromIso, range.toIso, transfersId),
+    getInflowTotal(userId, range.fromIso, range.toIso, transfersId),
+    getMonthlyCashFlow(userId, range.fromIso, range.toIso, transfersId),
+    getTopMerchants(userId, range.fromIso, range.toIso, 6, transfersId),
+    getDailySpend(userId, isoOf(todayMs - 364 * DAY), todayIso, transfersId),
+    priorFrom ? getSpendByCategory(userId, priorFrom, priorTo, transfersId) : Promise.resolve(null),
   ]);
 
-  const cats = await sdb.selectAll(categories);
   const recent = await sdb.selectAll(transactions, { orderBy: desc(transactions.postedAt), limit: 10 });
   const accts = await sdb.selectAll(financialAccounts);
   const currency = accts[0]?.currency ?? "USD";
@@ -127,7 +131,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                 )
               }
             />
-            <Tile label="Received" value={`+${formatCurrency(inflow, currency)}`} hint="deposits, refunds & transfers in" positive />
+            <Tile label="Received" value={`+${formatCurrency(inflow, currency)}`} hint="deposits & refunds" positive />
             <Tile label="Net cash flow" value={`${net >= 0 ? "+" : "−"}${formatCurrency(Math.abs(net), currency)}`} hint="in − out" positive={net >= 0} />
             <Tile label="Avg / month" value={formatCurrency(avgMonth, currency)} hint={`over ${cashflow.length || 1} month${cashflow.length === 1 ? "" : "s"}`} />
           </div>
